@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Master Generic Lunch Menu Plan (5-Week Roster) | {{ site_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ── Light & Dark Theme Adaptations for Header Card ── */
+  .master-plan-header {
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: all 0.25s ease;
+  }
+
+  [data-bs-theme="dark"] .master-plan-header {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  [data-bs-theme="light"] .master-plan-header {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    color: #0f172a;
+    border: 1px solid #cbd5e1;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+  }
+
+  [data-bs-theme="light"] .master-plan-header .header-title-text {
+    color: #0f172a !important;
+  }
+
+  [data-bs-theme="light"] .master-plan-header .header-sub-text {
+    color: #475569 !important;
+  }
+
+  [data-bs-theme="dark"] .master-plan-header .header-title-text {
+    color: #ffffff !important;
+  }
+
+  [data-bs-theme="dark"] .master-plan-header .header-sub-text {
+    color: rgba(255, 255, 255, 0.75) !important;
+  }
+
+  .nav-tabs-plan .nav-link {
+    font-weight: 700;
+    color: var(--bs-secondary-color, #64748b);
+    border: 1px solid transparent;
+    border-radius: 8px 8px 0 0;
+    padding: 0.6rem 1.25rem;
+    font-size: 0.9rem;
+  }
+
+  .nav-tabs-plan .nav-link.active {
+    color: var(--bs-primary, #0284c7);
+    background-color: var(--bs-body-bg, #ffffff);
+    border-color: var(--bs-border-color, #cbd5e1) var(--bs-border-color, #cbd5e1) var(--bs-body-bg, #ffffff);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+  <!-- 1. Master Header Banner (Light & Dark Theme Synced) -->
+  <div class="master-plan-header shadow-sm mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+      <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <span class="badge bg-warning text-dark font-monospace text-uppercase px-2 py-1">Generic 5-Week Roster</span>
+          <span class="header-sub-text small">{{ tenant.title }}</span>
+        </div>
+        <h1 class="h3 mb-0 fw-bold header-title-text">
+          <i class="bi bi-journal-text me-2 text-warning"></i>Master Lunch Menu Plan
+        </h1>
+        <div class="header-sub-text small mt-1">
+          Static 5-week rotating roster (Weeks 1 to 5). Repeats automatically every month without needing date re-entry.
+        </div>
+      </div>
+
+      <div class="d-flex gap-2">
+        <a href="{% url 'menu:monthly' %}" class="btn btn-outline-primary btn-sm px-3 fw-bold">
+          <i class="bi bi-eye me-1"></i> View Monthly Schedule
+        </a>
+        <a href="{% url 'menu:lunch_plan_create' %}" class="btn btn-warning btn-sm fw-bold px-3 text-dark shadow-sm">
+          <i class="bi bi-plus-lg me-1"></i> Add Master Plan Entry
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Roster Summary Stats -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm rounded-3 p-3 bg-body border-start border-primary border-4">
+        <div class="text-body-secondary small text-uppercase fw-semibold">Roster Capacity</div>
+        <div class="h5 mb-0 fw-bold text-primary mt-1">5 Weeks (35 Total Slots)</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm rounded-3 p-3 bg-body border-start border-success border-4">
+        <div class="text-body-secondary small text-uppercase fw-semibold">Configured Dishes</div>
+        <div class="h5 mb-0 fw-bold text-success mt-1">{{ total_configured }} Slots Active</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm rounded-3 p-3 bg-body border-start border-warning border-4">
+        <div class="text-body-secondary small text-uppercase fw-semibold">Roster Maintenance</div>
+        <div class="h5 mb-0 fw-bold text-warning mt-1">Static (Edit when reviewed)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. 5-Week Tabs Navigation -->
+  <div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-4">
+    <div class="card-header bg-body-tertiary pb-0 pt-3 border-bottom-0">
+      <ul class="nav nav-tabs nav-tabs-plan border-bottom-0" id="planWeekTabs" role="tablist">
+        {% for week_num in "12345"|make_list %}
+          <li class="nav-item" role="presentation">
+            <button class="nav-link {% if forloop.first %}active{% endif %}" id="tab-w{{ week_num }}" data-bs-toggle="tab" data-bs-target="#pane-w{{ week_num }}" type="button" role="tab">
+              <i class="bi bi-calendar-week me-1"></i> Week {{ week_num }}
+            </button>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="card-body p-0">
+      <div class="tab-content" id="planWeekTabsContent">
+        {% for week_num, day_slots in weeks_matrix.items %}
+          <div class="tab-pane fade {% if week_num == 1 %}show active{% endif %}" id="pane-w{{ week_num }}" role="tabpanel">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th class="ps-4" style="width:14%;">Day of Week</th>
+                    <th style="width:30%;">Catering Dish & Details</th>
+                    <th style="width:16%;">Chef / Cook</th>
+                    <th style="width:16%;">Roti Selection</th>
+                    <th style="width:14%;">Sweet Selection</th>
+                    <th class="text-center pe-4" style="width:10%;">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for slot in day_slots %}
+                    <tr>
+                      <td class="ps-4">
+                        <span class="badge bg-secondary-subtle text-body border px-2 py-1 font-monospace">{{ slot.day_name }}</span>
+                      </td>
+
+                      {% if slot.plan %}
+                        <td>
+                          <div class="fw-bold text-body fs-6">{{ slot.plan.dish_name }}</div>
+                          {% if slot.plan.description %}
+                            <div class="text-body-secondary small" style="font-size:0.78rem;">{{ slot.plan.description }}</div>
+                          {% endif %}
+                        </td>
+
+                        <td>
+                          {% if slot.plan.cook %}
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 fw-semibold">
+                              <i class="bi bi-person-badge me-1"></i>{{ slot.plan.cook.name }}
+                            </span>
+                          {% else %}
+                            <span class="text-body-secondary small">—</span>
+                          {% endif %}
+                        </td>
+
+                        <td>
+                          <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1 fw-semibold">
+                            <i class="bi bi-disc text-warning me-1"></i>{{ slot.plan.get_roti_type_display }}
+                          </span>
+                        </td>
+
+                        <td>
+                          {% if slot.plan.sweet %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 fw-semibold">
+                              <i class="bi bi-cup-straw me-1"></i>{{ slot.plan.sweet.name }}
+                            </span>
+                          {% elif slot.plan.contains_sweet %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 fw-semibold">
+                              <i class="bi bi-cup-straw me-1"></i>Included
+                            </span>
+                          {% else %}
+                            <span class="text-body-secondary small">None</span>
+                          {% endif %}
+                        </td>
+
+                        <td class="text-center pe-4">
+                          <div class="btn-group btn-group-sm">
+                            <a href="{% url 'menu:lunch_plan_update' slot.plan.pk %}" class="btn btn-outline-primary" title="Edit Plan Entry">
+                              <i class="bi bi-pencil"></i>
+                            </a>
+                            <form method="post" action="{% url 'menu:lunch_plan_delete' slot.plan.pk %}" class="d-inline" onsubmit="return confirm('Delete Week {{ week_num }} {{ slot.day_name }} plan?');">
+                              {% csrf_token %}
+                              <button type="submit" class="btn btn-outline-danger" title="Delete Plan Entry">
+                                <i class="bi bi-trash"></i>
+                              </button>
+                            </form>
+                          </div>
+                        </td>
+                      {% else %}
+                        <td colspan="4">
+                          <div class="text-body-secondary small fst-italic">No dish configured for Week {{ week_num }} {{ slot.day_name }}</div>
+                        </td>
+                        <td class="text-center pe-4">
+                          <a href="{% url 'menu:lunch_plan_create' %}?week={{ week_num }}&day={{ slot.day_val }}" class="btn btn-sm btn-outline-success fw-bold">
+                            <i class="bi bi-plus-lg me-1"></i> Add
+                          </a>
+                        </td>
+                      {% endif %}
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'menu/js/lunch_plan.js' %}"></script>
+{% endblock %}

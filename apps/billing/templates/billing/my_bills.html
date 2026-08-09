@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}My Monthly Bills | {{ site_name }}{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'billing/css/my_bills.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">My Monthly Bills</h1>
+    <p class="page-header-subtitle">View and download your monthly cafeteria invoices and payment receipts.</p>
+  </div>
+</div>
+
+<div class="card" id="cardMyBills">
+  <div class="card-body p-0">
+    {% if bills %}
+    <div class="table-responsive">
+      <table class="table mb-0">
+        <thead>
+          <tr>
+            <th>Billing Period</th>
+            <th>Token Total</th>
+            <th>Grand Total</th>
+            <th>Status</th>
+            <th class="text-end">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for bill in bills %}
+          <tr>
+            <td><strong>{{ bill.period_start|date:"F Y" }}</strong></td>
+            <td>PKR {{ bill.token_total|floatformat:2 }}</td>
+            <td><strong class="text-primary">PKR {{ bill.total|floatformat:2 }}</strong></td>
+            <td>
+              <span class="badge-pill {% if bill.status == 'paid' %}badge-active{% elif bill.status == 'published' %}badge-pending{% else %}badge-inactive{% endif %}">
+                {{ bill.get_status_display }}
+              </span>
+            </td>
+            <td class="text-end">
+              <a href="{% url 'billing:my_bill_detail' bill.pk %}" class="btn btn-sm btn-outline-primary">View Invoice</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state py-5 text-center text-muted">
+      <i class="bi bi-file-earmark-x fs-1"></i>
+      <p class="mt-2 mb-0">No published bills found for your account.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'billing/js/my_bills.js' %}"></script>
+{% endblock %}

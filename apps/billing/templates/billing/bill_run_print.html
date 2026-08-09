@@ -1,0 +1,316 @@
+{% extends "base_minimal.html" %}
+{% load static %}
+
+{% block title %}Print Master Report — {{ month_date|date:"F Y" }} | {{ site_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .a4-page-container {
+    width: 297mm;
+    min-height: 210mm;
+    box-sizing: border-box;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+
+  .report-metric-card {
+    border: 1px solid rgba(0,0,0,0.12);
+    border-radius: 6px;
+    padding: 0.45rem 0.6rem;
+    background: #fdfdfd;
+  }
+
+  .report-metric-card .metric-lbl {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #555;
+    font-weight: 700;
+  }
+
+  .report-metric-card .metric-val {
+    font-size: 1.05rem;
+    font-weight: 800;
+    line-height: 1.2;
+    margin-top: 0.1rem;
+    font-family: var(--bs-font-monospace);
+  }
+
+  .report-table {
+    border: 1px solid #000 !important;
+    width: 100% !important;
+  }
+
+  .report-table th {
+    font-size: 0.68rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    background-color: #f1f3f5 !important;
+    color: #000 !important;
+    padding: 0.35rem 0.45rem !important;
+    border: 1px solid #999 !important;
+  }
+
+  .report-table td {
+    padding: 0.35rem 0.45rem !important;
+    font-size: 0.74rem !important;
+    border: 1px solid #dee2e6 !important;
+    white-space: nowrap;
+  }
+
+  .report-table tfoot td {
+    font-size: 0.76rem !important;
+    background-color: #f8f9fa !important;
+    border-top: 2px solid #000 !important;
+  }
+
+  .signature-box {
+    border-top: 1.5px solid #000;
+    padding-top: 4px;
+    text-align: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  @media print {
+    @page {
+      size: A4 landscape;
+      margin: 6mm 8mm 6mm 8mm;
+    }
+    body {
+      background: #fff !important;
+      color: #000 !important;
+      font-size: 9pt !important;
+    }
+    .print-controls-bar {
+      display: none !important;
+    }
+    .a4-page-container {
+      width: 100% !important;
+      min-height: auto !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      box-shadow: none !important;
+    }
+    .report-metric-card {
+      border: 1px solid #888 !important;
+      background: #fff !important;
+    }
+    .report-table th {
+      background-color: #e9ecef !important;
+      color: #000 !important;
+      -webkit-print-color-adjust: exact;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Top Sticky Control Bar (Hidden on print) -->
+<div class="print-controls-bar d-print-none bg-dark text-white p-2 shadow-sm sticky-top">
+  <div class="container-fluid d-flex justify-content-between align-items-center">
+    <div class="fw-bold small">
+      <i class="bi bi-file-earmark-pdf me-2 text-warning"></i>Master Monthly Billing Executive Report (A4 Landscape Printable)
+    </div>
+    <div class="d-flex gap-2">
+      <button onclick="window.print()" class="btn btn-warning btn-sm fw-bold text-dark px-3 shadow-sm">
+        <i class="bi bi-printer me-1"></i> Print Report
+      </button>
+      <a href="{% url 'billing:run_report' month_str %}" class="btn btn-outline-light btn-sm px-3">
+        <i class="bi bi-arrow-left me-1"></i> Back to Report Summary
+      </a>
+      <a href="{% url 'billing:generate' %}" class="btn btn-outline-secondary btn-sm px-3 text-white border-light">
+        <i class="bi bi-gear me-1"></i> Bill Generation
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- A4 Executive Landscape Printable Document Container -->
+<div class="a4-page-container my-3 mx-auto bg-white shadow-lg p-4">
+
+  <!-- 1. Master Document Header -->
+  <div class="d-flex justify-content-between align-items-center border-bottom border-2 border-primary pb-2 mb-3">
+    <div>
+      <h1 class="h4 fw-bold mb-0 text-dark">{{ site_name|default:"CAFETERIA MANAGEMENT SYSTEM" }}</h1>
+      <h2 class="h6 fw-bold text-primary mb-0 mt-1">Master Monthly Billing Executive Summary Report</h2>
+      <div class="text-muted small mt-1">
+        Billed Period: <strong>{{ month_date|date:"F Y" }}</strong> | Total Employees Billed: <strong>{{ employee_count }}</strong>
+      </div>
+    </div>
+    <div class="text-end font-monospace small">
+      <div class="badge bg-primary text-white font-monospace px-3 py-1 mb-1 fs-6">
+        {{ month_date|date:"Y-m" }} BATCH (LANDSCAPE)
+      </div>
+      <div class="text-secondary small">Generated: {% now "Y-m-d H:i" %}</div>
+      <div class="text-secondary small">Status: <strong>{{ bill_run.get_status_display|default:"Generated Entry" }}</strong></div>
+    </div>
+  </div>
+
+  <!-- 2. Executive Overall Statistics KPI Grid (Landscape 8-Column Row Grid) -->
+  <div class="row g-2 mb-3">
+    <div class="col">
+      <div class="report-metric-card">
+        <div class="metric-lbl">Billed Members</div>
+        <div class="metric-val text-dark">{{ employee_count }}</div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="report-metric-card">
+        <div class="metric-lbl">Lunch Tokens</div>
+        <div class="metric-val text-primary">{{ stats.token_qty|default:0 }} <span class="fs-6 text-muted fw-normal">({{ stats.token_amt|default:0|floatformat:2 }})</span></div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="report-metric-card">
+        <div class="metric-lbl">Extra Roti</div>
+        <div class="metric-val text-warning-emphasis">{{ stats.roti_qty|default:0 }} Pcs <span class="fs-6 text-muted fw-normal">({{ stats.roti_amt|default:0|floatformat:2 }})</span></div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="report-metric-card">
+        <div class="metric-lbl">Extra Sweet</div>
+        <div class="metric-val text-danger">{{ stats.sweet_qty|default:0 }} Pcs <span class="fs-6 text-muted fw-normal">({{ stats.sweet_amt|default:0|floatformat:2 }})</span></div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="report-metric-card">
+        <div class="metric-lbl">Misc & Maint.</div>
+        <div class="metric-val text-info">{{ stats.misc_amt|default:0|floatformat:2 }}</div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="report-metric-card">
+        <div class="metric-lbl">Prev Dues</div>
+        <div class="metric-val text-warning">{{ stats.prev_amt|default:0|floatformat:2 }}</div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="report-metric-card">
+        <div class="metric-lbl">Pending Deposit</div>
+        <div class="metric-val text-danger">{{ stats.deposit_amt|default:0|floatformat:2 }}</div>
+      </div>
+    </div>
+    <div class="col-3">
+      <div class="report-metric-card bg-primary-subtle border-primary">
+        <div class="metric-lbl text-primary">Grand Total Net Amount</div>
+        <div class="metric-val text-primary fs-5">{{ stats.total_amt|default:0|floatformat:2 }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Compact Employee Master Billing Roster Table (Optimized for Landscape Fit) -->
+  <div class="table-responsive mb-4">
+    <table class="table table-bordered align-middle mb-0 report-table">
+      <thead>
+        <tr>
+          <th class="text-center" style="width:3%;">Sr</th>
+          <th class="ps-2" style="width:22%;">Employee & P-No</th>
+          <th class="text-center" style="width:9%;">Dept</th>
+          <th class="text-center" style="width:14%;">Token (Qty & Rate)</th>
+          <th class="text-center" style="width:11%;">Ex. Roti</th>
+          <th class="text-center" style="width:11%;">Ex. Sweet</th>
+          <th class="text-end" style="width:7%;">Misc</th>
+          <th class="text-end" style="width:7%;">Prev Dues</th>
+          <th class="text-end" style="width:7%;">Deposit</th>
+          <th class="text-end pe-2" style="width:11%;">Grand Total</th>
+          <th class="text-center" style="width:8%;">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in bills %}
+        <tr>
+          <td class="text-center font-monospace small text-muted">{{ forloop.counter }}</td>
+          <td class="ps-2">
+            <div class="fw-bold text-dark" style="font-size:0.78rem;">{{ b.employee.full_name }}</div>
+            <div class="text-muted font-monospace" style="font-size:0.68rem;">P-No: {{ b.employee.pno|default:"—" }} | Reg: {{ b.employee.register_number|default:"—" }}</div>
+          </td>
+          <td class="text-center font-monospace" style="font-size:0.7rem;">
+            {{ b.employee.department.code|default:"GEN" }}
+          </td>
+          <td class="text-center font-monospace">
+            {{ b.total_token_qty }} @ {{ b.token_total|floatformat:2 }}
+          </td>
+          <td class="text-center font-monospace">
+            {% if b.total_extra_roti_qty > 0 %}
+              {{ b.total_extra_roti_qty }} ({{ b.extra_roti_total|floatformat:2 }})
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td class="text-center font-monospace">
+            {% if b.total_extra_sweet_qty > 0 %}
+              {{ b.total_extra_sweet_qty }} ({{ b.extra_sweet_total|floatformat:2 }})
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td class="text-end font-monospace">{{ b.misc_charges_total|floatformat:2 }}</td>
+          <td class="text-end font-monospace {% if b.previous_balance > 0 %}fw-bold text-warning{% else %}text-muted{% endif %}">
+            {{ b.previous_balance|floatformat:2 }}
+          </td>
+          <td class="text-end font-monospace {% if b.security_deposit_pending > 0 %}fw-bold text-danger{% else %}text-muted{% endif %}">
+            {{ b.security_deposit_pending|floatformat:2 }}
+          </td>
+          <td class="text-end pe-2 font-monospace fw-bold text-dark" style="font-size:0.8rem;">
+            {{ b.total|floatformat:2 }}
+          </td>
+          <td class="text-center font-monospace" style="font-size:0.68rem;">
+            {% if b.status == 'paid' %}
+              <span class="badge bg-success text-white">Paid</span>
+            {% elif b.status == 'partially_paid' %}
+              <span class="badge bg-warning text-dark">Partial</span>
+            {% else %}
+              <span class="badge bg-secondary text-white">Unpaid</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="11" class="text-muted p-4 text-center">
+            No employee bills recorded for this month entry.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr class="fw-bold font-monospace">
+          <td colspan="3" class="ps-2 text-start">Total Aggregated Totals:</td>
+          <td class="text-center">{{ stats.token_qty|default:0 }} ({{ stats.token_amt|default:0|floatformat:2 }})</td>
+          <td class="text-center">{{ stats.roti_qty|default:0 }} ({{ stats.roti_amt|default:0|floatformat:2 }})</td>
+          <td class="text-center">{{ stats.sweet_qty|default:0 }} ({{ stats.sweet_amt|default:0|floatformat:2 }})</td>
+          <td class="text-end">{{ stats.misc_amt|default:0|floatformat:2 }}</td>
+          <td class="text-end">{{ stats.prev_amt|default:0|floatformat:2 }}</td>
+          <td class="text-end">{{ stats.deposit_amt|default:0|floatformat:2 }}</td>
+          <td class="text-end pe-2 text-primary fs-6">{{ stats.total_amt|default:0|floatformat:2 }}</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <!-- 4. Executive Audit Signatures Block -->
+  <div class="row pt-3 mt-4 border-top border-secondary">
+    <div class="col-4">
+      <div class="signature-box pt-3">
+        <div>Prepared By</div>
+        <div class="text-muted font-monospace small mt-1">Cafeteria In-Charge</div>
+      </div>
+    </div>
+    <div class="col-4">
+      <div class="signature-box pt-3">
+        <div>Verified & Audited By</div>
+        <div class="text-muted font-monospace small mt-1">Audit & Finance Committee</div>
+      </div>
+    </div>
+    <div class="col-4">
+      <div class="signature-box pt-3">
+        <div>Approved By</div>
+        <div class="text-muted font-monospace small mt-1">Competent Authority / Director</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

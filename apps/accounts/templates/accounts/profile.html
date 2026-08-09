@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}My Profile | {{ site_name }}{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'accounts/css/profile.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">My Profile</h1>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-4">
+    {# Avatar Card #}
+    <div class="card text-center p-3" id="cardAvatar">
+      {% if request.user.avatar %}
+        <img src="{{ request.user.avatar.url }}" alt="Avatar"
+             style="width:100px;height:100px;border-radius:50%;object-fit:cover;margin:0 auto 1rem;"
+             id="profileAvatar">
+      {% else %}
+        <div style="width:100px;height:100px;border-radius:50%;background:linear-gradient(135deg,var(--clr-primary),#7c3aed);display:flex;align-items:center;justify-content:center;font-size:2.5rem;font-weight:700;color:#fff;margin:0 auto 1rem;"
+             id="profileAvatarInitials">
+          {{ request.user.display_name|slice:":1"|upper }}
+        </div>
+      {% endif %}
+      <h2 style="font-size:1.1rem;font-weight:700;" id="profileName">{{ request.user.display_name }}</h2>
+      <p class="text-muted mb-0" id="profileRole">{{ request.user.get_role_display }}</p>
+      {% if request.user.tenant %}
+        <p class="text-muted" style="font-size:0.8rem;" id="profileTenant">{{ request.user.tenant.title }}</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-md-8">
+    {# Profile Edit #}
+    <div class="card mb-4" id="cardProfileEdit">
+      <div class="card-header"><h2 class="card-title">Edit Profile</h2></div>
+      <div class="card-body">
+        <form method="post" enctype="multipart/form-data" id="profileForm" data-submit-once>
+          {% csrf_token %}
+          <div class="row g-3">
+            <div class="col-sm-6">
+              {{ form.first_name.label_tag }}
+              {{ form.first_name }}
+            </div>
+            <div class="col-sm-6">
+              {{ form.last_name.label_tag }}
+              {{ form.last_name }}
+            </div>
+            <div class="col-12">
+              {{ form.email.label_tag }}
+              {{ form.email }}
+            </div>
+            <div class="col-12">
+              <label class="form-label">Profile Photo</label>
+              {{ form.avatar }}
+            </div>
+          </div>
+          <div class="mt-3 d-flex gap-2">
+            <button type="submit" class="btn btn-primary" id="btnSaveProfile">
+              <i class="bi bi-check me-1"></i>Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    {# Change Password #}
+    <div class="card" id="cardChangePassword">
+      <div class="card-header"><h2 class="card-title">Change Password</h2></div>
+      <div class="card-body">
+        <form method="post" action="{% url 'accounts:change_password' %}" id="passwordForm" data-submit-once>
+          {% csrf_token %}
+          <div class="row g-3">
+            <div class="col-12">
+              {{ password_form.old_password.label_tag }}
+              {{ password_form.old_password }}
+            </div>
+            <div class="col-sm-6">
+              {{ password_form.new_password1.label_tag }}
+              {{ password_form.new_password1 }}
+            </div>
+            <div class="col-sm-6">
+              {{ password_form.new_password2.label_tag }}
+              {{ password_form.new_password2 }}
+            </div>
+          </div>
+          <div class="mt-3">
+            <button type="submit" class="btn btn-warning" id="btnChangePassword">
+              <i class="bi bi-key me-1"></i>Change Password
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'accounts/js/profile.js' %}"></script>
+{% endblock %}

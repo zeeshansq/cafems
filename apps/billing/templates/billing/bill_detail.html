@@ -1,0 +1,347 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Bill Detail – {{ bill.employee.full_name }} | {{ site_name }}{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'billing/css/bill_detail.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+  <div>
+    <h1 class="page-header-title h3 fw-bold text-body mb-1">Bill #{{ bill.id }} – {{ bill.period_start|date:"F Y" }}</h1>
+    <p class="page-header-subtitle text-body-secondary mb-0">Employee: <strong class="text-body">{{ bill.employee.full_name }}</strong> (P-No: {{ bill.employee.pno|default:"—" }})</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'billing:list' %}" class="btn btn-outline-secondary btn-sm px-3 fw-bold">
+      <i class="bi bi-arrow-left me-1"></i>Back to Bills List
+    </a>
+  </div>
+</div>
+
+<!-- 1. Smart Pending Dues & Deposit KPI Bar (Light & Dark Theme Synced) -->
+<div class="row g-3 mb-4">
+  <div class="col-md-3 col-6">
+    <div class="card border-0 shadow-sm rounded-3 p-3 bg-body border-start border-primary border-4">
+      <div class="text-body-secondary small text-uppercase fw-semibold">Current Month Subtotal</div>
+      <div class="h5 mb-0 fw-bold text-primary mt-1 font-monospace">{{ bill.subtotal|floatformat:2 }}</div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="card border-0 shadow-sm rounded-3 p-3 bg-body border-start {% if bill.previous_balance > 0 %}border-warning{% else %}border-success{% endif %} border-4">
+      <div class="text-body-secondary small text-uppercase fw-semibold">Previous Carryforward Dues</div>
+      <div class="h5 mb-0 fw-bold {% if bill.previous_balance > 0 %}text-warning{% else %}text-success{% endif %} mt-1 font-monospace">
+        {% if bill.previous_balance > 0 %}
+          + {{ bill.previous_balance|floatformat:2 }}
+        {% else %}
+          0.00 <span class="fs-6 text-body-secondary fw-normal">(Clean)</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="card border-0 shadow-sm rounded-3 p-3 bg-body border-start {% if bill.security_deposit_pending > 0 %}border-danger{% else %}border-info{% endif %} border-4">
+      <div class="text-body-secondary small text-uppercase fw-semibold">Security Deposit Status</div>
+      <div class="h5 mb-0 fw-bold {% if bill.security_deposit_pending > 0 %}text-danger{% else %}text-info{% endif %} mt-1 font-monospace">
+        {% if bill.security_deposit_pending > 0 %}
+          + {{ bill.security_deposit_pending|floatformat:2 }} <span class="fs-6 fw-normal">(Pending)</span>
+        {% else %}
+          {{ bill.employee.security_deposit_paid|default:"1000.00"|floatformat:2 }} <span class="fs-6 text-success fw-normal">(Paid)</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="card border-0 shadow-sm rounded-3 p-3 bg-body border-start border-dark border-4">
+      <div class="text-body-secondary small text-uppercase fw-semibold">Net Payable Total</div>
+      <div class="h5 mb-0 fw-bold text-body mt-1 font-monospace">{{ bill.total|floatformat:2 }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <!-- Left Column: Invoice Summary Breakdown -->
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-4" id="cardInvoice">
+      <div class="card-header bg-body-tertiary border-bottom py-3 d-flex justify-content-between align-items-center">
+        <h2 class="card-title h6 mb-0 fw-bold text-body"><i class="bi bi-file-earmark-text me-2 text-warning"></i>Invoice Summary Breakdown</h2>
+        <span class="badge {% if bill.status == 'paid' %}bg-success{% elif bill.status == 'published' %}bg-primary{% else %}bg-secondary{% endif %} px-3 py-1 font-monospace">
+          {{ bill.get_status_display }}
+        </span>
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="bg-body-tertiary text-uppercase small text-body-secondary">
+            <tr>
+              <th class="ps-4">Item Description</th>
+              <th class="text-center" style="width:12%;">Qty</th>
+              <th class="text-end" style="width:22%;">Avg Unit Price</th>
+              <th class="text-end pe-4" style="width:25%;">Total Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in bill.summary_line_items %}
+            <tr>
+              <td class="ps-4 fw-semibold text-body">{{ item.description }}</td>
+              <td class="text-center font-monospace">{{ item.quantity }}</td>
+              <td class="text-end font-monospace">{{ item.unit_price }}</td>
+              <td class="text-end pe-4 font-monospace fw-bold">{{ item.total }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-body-secondary p-3 text-center">No line items recorded.</td></tr>
+            {% endfor %}
+          </tbody>
+          <tfoot class="table-group-divider">
+            <tr>
+              <td colspan="3" class="text-end fw-bold">Token Expense Subtotal:</td>
+              <td class="text-end pe-4 fw-bold font-monospace">{{ bill.token_total|floatformat:2 }}</td>
+            </tr>
+            {% if bill.extra_roti_total > 0 %}
+            <tr>
+              <td colspan="3" class="text-end fw-bold">Extra Roti Subtotal:</td>
+              <td class="text-end pe-4 fw-bold font-monospace">{{ bill.extra_roti_total|floatformat:2 }}</td>
+            </tr>
+            {% endif %}
+            {% if bill.extra_sweet_total > 0 %}
+            <tr>
+              <td colspan="3" class="text-end fw-bold">Extra Sweet Subtotal:</td>
+              <td class="text-end pe-4 fw-bold font-monospace">{{ bill.extra_sweet_total|floatformat:2 }}</td>
+            </tr>
+            {% endif %}
+            {% if bill.misc_charges_total > 0 %}
+            <tr>
+              <td colspan="3" class="text-end fw-bold">Misc & Maintenance Charges:</td>
+              <td class="text-end pe-4 fw-bold font-monospace">{{ bill.misc_charges_total|floatformat:2 }}</td>
+            </tr>
+            {% endif %}
+            {% if bill.adjustment_total != 0 %}
+            <tr>
+              <td colspan="3" class="text-end fw-bold">Month-End Adjustment (+/-):</td>
+              <td class="text-end pe-4 fw-bold font-monospace">{{ bill.adjustment_total|floatformat:2 }}</td>
+            </tr>
+            {% endif %}
+            <tr class="table-group-divider border-top border-2 bg-body-tertiary text-body fw-bold">
+              <td colspan="3" class="text-end fw-bold text-body">Current Month Subtotal:</td>
+              <td class="text-end pe-4 fw-bold font-monospace text-body">{{ bill.subtotal|floatformat:2 }}</td>
+            </tr>
+            {% if bill.previous_balance > 0 %}
+            <tr>
+              <td colspan="3" class="text-end fw-bold text-warning">
+                <i class="bi bi-exclamation-triangle me-1"></i>Previous Carryforward Dues:
+              </td>
+              <td class="text-end pe-4 fw-bold font-monospace text-warning">+ {{ bill.previous_balance|floatformat:2 }}</td>
+            </tr>
+            {% endif %}
+            {% if bill.security_deposit_pending > 0 %}
+            <tr>
+              <td colspan="3" class="text-end fw-bold text-danger">
+                <i class="bi bi-shield-exclamation me-1"></i>Pending Security Deposit Obligation:
+              </td>
+              <td class="text-end pe-4 fw-bold font-monospace text-danger">+ {{ bill.security_deposit_pending|floatformat:2 }}</td>
+            </tr>
+            {% endif %}
+            <tr class="bg-primary-subtle text-primary-emphasis border-top border-primary border-2 fs-5 fw-bold">
+              <td colspan="3" class="text-end fw-bold">Grand Total Net Due:</td>
+              <td class="text-end pe-4 fw-bold font-monospace text-primary fs-5">PKR {{ bill.total|floatformat:2 }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Column: Dues Widget, Actions & Cash Payment Form -->
+  <div class="col-lg-4">
+    {# Dues & Deposit Summary Smart Card #}
+    <div class="card border-0 shadow-sm rounded-3 mb-4">
+      <div class="card-header bg-body-tertiary border-bottom py-3">
+        <h2 class="card-title h6 mb-0 fw-bold text-body"><i class="bi bi-shield-check me-2 text-info"></i>Dues & Deposit Summary</h2>
+      </div>
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+          <span class="text-body-secondary small">Security Deposit Paid:</span>
+          <span class="badge bg-success-subtle text-success border font-monospace px-2 py-1">
+            {{ bill.employee.security_deposit_paid|default:"1000.00"|floatformat:2 }}
+          </span>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+          <span class="text-body-secondary small">Pending Security Deposit:</span>
+          {% if bill.security_deposit_pending > 0 %}
+            <span class="badge bg-danger text-white font-monospace px-2 py-1">
+              {{ bill.security_deposit_pending|floatformat:2 }} Pending
+            </span>
+          {% else %}
+            <span class="badge bg-success-subtle text-success border font-monospace px-2 py-1">
+              0.00 (Fully Paid)
+            </span>
+          {% endif %}
+        </div>
+        <div class="d-flex justify-content-between align-items-center">
+          <span class="text-body-secondary small">Previous Balance Carried:</span>
+          {% if bill.previous_balance > 0 %}
+            <span class="badge bg-warning text-dark font-monospace px-2 py-1">
+              {{ bill.previous_balance|floatformat:2 }} Overdue
+            </span>
+          {% else %}
+            <span class="badge bg-secondary-subtle text-body border font-monospace px-2 py-1">
+              0.00 (No Dues)
+            </span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {# Record Cash Payment Card (Payment Type Removed, Date Prefilled to Today) #}
+    {% if bill.status != 'paid' %}
+    <div class="card border-0 shadow-sm rounded-3" id="cardRecordPayment">
+      <div class="card-header bg-success-subtle py-3 d-flex justify-content-between align-items-center">
+        <h2 class="card-title h6 mb-0 fw-bold text-success"><i class="bi bi-cash me-2"></i>Record Cash Payment</h2>
+        <span class="badge bg-success text-white">Cash Only</span>
+      </div>
+      <div class="card-body">
+        <form method="post" action="{% url 'billing:record_payment' bill.pk %}">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-body">Amount Paid</label>
+            {{ payment_form.amount_paid }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-body">Payment Date</label>
+            {{ payment_form.payment_date }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-body">Receipt / Voucher # (Optional)</label>
+            {{ payment_form.reference }}
+            <div class="form-text" style="font-size:0.75rem;">Optional physical voucher or slip reference number.</div>
+          </div>
+          <button type="submit" class="btn btn-success w-100 fw-bold shadow-sm">
+            <i class="bi bi-check-circle me-1"></i> Save Cash Payment Receipt
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- 2. FULL PAGE WIDTH SECTION: Day-by-Day Complete Attendance & Token Activity Log -->
+<div class="row">
+  <div class="col-12">
+    <div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-4" id="cardDayByDay">
+      <div class="card-header bg-body-tertiary border-bottom py-3 d-flex justify-content-between align-items-center">
+        <h2 class="card-title h6 mb-0 fw-bold text-body">
+          <i class="bi bi-calendar-check me-2 text-info"></i>Day-by-Day Attendance & Token Activity Log ({{ bill.period_start|date:"F Y" }})
+        </h2>
+        <span class="badge bg-info-subtle text-info border font-monospace">{{ daily_tokens|length }} Days Issued</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="bg-body-tertiary text-uppercase small text-body-secondary" style="font-size:0.8rem;">
+            <tr>
+              <th class="ps-4" style="width:14%;">Date</th>
+              <th style="width:36%;">Served Catering Dish & Chef</th>
+              <th class="text-center" style="width:14%;">Token Qty & Rate</th>
+              <th class="text-center" style="width:12%;">Ex. Roti</th>
+              <th class="text-center" style="width:12%;">Ex. Sweet</th>
+              <th class="text-end pe-4" style="width:12%;">Day Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for tok in daily_tokens %}
+            <tr>
+              <td class="ps-4 font-monospace">
+                <div class="fw-bold text-body" style="font-size:0.85rem;">{{ tok.date|date:"Y-m-d" }}</div>
+                <div class="text-body-secondary small" style="font-size:0.75rem;">{{ tok.date|date:"l" }}</div>
+              </td>
+              <td>
+                {% if tok.daily_estimate %}
+                  <div class="fw-semibold text-body" style="font-size:0.85rem;">{{ tok.daily_estimate.dish_name }}</div>
+                  <div class="text-body-secondary small" style="font-size:0.75rem;">Cook: {{ tok.daily_estimate.cook.name|default:"Main Kitchen" }}</div>
+                {% else %}
+                  <div class="fw-semibold text-body" style="font-size:0.85rem;">Cafeteria Lunch Menu</div>
+                {% endif %}
+              </td>
+              <td class="text-center font-monospace">
+                <span class="badge bg-success-subtle text-success border px-2 py-1" style="font-size:0.78rem;">
+                  {{ tok.token_qty }} @ {{ tok.price_snapshot|floatformat:2 }}
+                </span>
+              </td>
+              <td class="text-center font-monospace">
+                {% if tok.extra_roti_qty > 0 %}
+                  <span class="badge bg-warning-subtle text-warning-emphasis border px-2 py-1" style="font-size:0.78rem;">
+                    {{ tok.extra_roti_qty }} @ 15.00
+                  </span>
+                {% else %}
+                  <span class="text-body-secondary small">—</span>
+                {% endif %}
+              </td>
+              <td class="text-center font-monospace">
+                {% if tok.extra_sweet_qty > 0 %}
+                  <span class="badge bg-danger-subtle text-danger border px-2 py-1" style="font-size:0.78rem;">
+                    {{ tok.extra_sweet_qty }} @ 35.00
+                  </span>
+                {% else %}
+                  <span class="text-body-secondary small">—</span>
+                {% endif %}
+              </td>
+              <td class="text-end pe-4 font-monospace fw-bold text-body" style="font-size:0.88rem;">
+                {{ tok.total_day_cost|floatformat:2 }}
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="6" class="text-body-secondary p-4 text-center">
+                <i class="bi bi-calendar-x fs-4 d-block mb-2 text-muted"></i>
+                No day-by-day token issuances recorded for {{ bill.period_start|date:"F Y" }}.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 3. Payment Receipt History -->
+<div class="row">
+  <div class="col-12">
+    <div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-4" id="cardPayments">
+      <div class="card-header bg-body-tertiary border-bottom py-3">
+        <h2 class="card-title h6 mb-0 fw-bold text-body"><i class="bi bi-wallet2 me-2 text-success"></i>Payment Receipt History</h2>
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="bg-body-tertiary text-uppercase small text-body-secondary">
+            <tr>
+              <th class="ps-4">Payment Date</th>
+              <th>Method</th>
+              <th>Reference / Voucher #</th>
+              <th class="text-end">Amount Paid</th>
+              <th class="text-end pe-4">Remaining Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for pay in payments %}
+            <tr>
+              <td class="ps-4 font-monospace">{{ pay.payment_date }}</td>
+              <td><span class="badge bg-success-subtle text-success border">Cash</span></td>
+              <td class="font-monospace">{{ pay.reference|default:"—" }}</td>
+              <td class="text-end text-success fw-bold font-monospace">{{ pay.amount_paid|floatformat:2 }}</td>
+              <td class="text-end pe-4 font-monospace">{{ pay.remaining_balance|floatformat:2 }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="text-body-secondary p-3 text-center">No payment receipts recorded yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'billing/js/bill_detail.js' %}"></script>
+{% endblock %}

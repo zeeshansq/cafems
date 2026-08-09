@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Generate Monthly Bills & Entries | {{ site_name }}{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'billing/css/generate_bills.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+  <div>
+    <h1 class="page-header-title h3 fw-bold text-body mb-1">Generate Monthly Bills & Entries</h1>
+    <p class="page-header-subtitle text-body-secondary mb-0">Run monthly billing calculation engine, publish monthly entries, and print executive master reports.</p>
+  </div>
+  <a href="{% url 'billing:list' %}" class="btn btn-outline-secondary btn-sm px-3 fw-bold">
+    <i class="bi bi-arrow-left me-1"></i>Back to Bills List
+  </a>
+</div>
+
+<div class="row g-4 mb-4">
+  <!-- Left Side: Run Engine Form -->
+  <div class="col-lg-5">
+    <div class="card border-0 shadow-sm rounded-3 overflow-hidden" id="cardGenerate">
+      <div class="card-header bg-body-tertiary border-bottom py-3 d-flex justify-content-between align-items-center">
+        <h2 class="card-title h6 mb-0 fw-bold text-body"><i class="bi bi-play-circle me-2 text-primary"></i>Generate New Monthly Bill Entry</h2>
+        <span class="badge bg-primary-subtle text-primary border font-monospace">Automated Engine</span>
+      </div>
+      <div class="card-body p-4">
+        
+        <form method="post" action="{% url 'billing:generate' %}" id="generateForm">
+          {% csrf_token %}
+          
+          <!-- Target Month -->
+          <div class="mb-4">
+            <label class="form-label fw-bold text-body">Target Billing Month</label>
+            <input type="month" name="month" class="form-control form-control-lg font-monospace" value="{{ default_month|date:'Y-m' }}" required>
+            <div class="form-text" style="font-size:0.78rem;">Select month for which employee bills will be calculated.</div>
+          </div>
+
+          <!-- Integrated Misc Charge Fields -->
+          <div class="card bg-body-tertiary border border-secondary-subtle rounded-3 p-3 mb-4">
+            <div class="d-flex align-items-center mb-2">
+              <i class="bi bi-sliders me-2 text-info fs-5"></i>
+              <h3 class="h6 fw-bold text-body mb-0">Monthly Misc & Maintenance Charge</h3>
+            </div>
+            <p class="text-body-secondary small mb-3">
+              Applied <strong>ONLY</strong> to members who issued $\ge 1$ Lunch Token in this month.
+            </p>
+            <div class="mb-3">
+              <label class="form-label small fw-semibold text-body">Misc Amount</label>
+              <input type="number" step="0.01" name="misc_amount" class="form-control font-monospace" value="{{ default_misc_amount|floatformat:2 }}" placeholder="30.00">
+            </div>
+            <div>
+              <label class="form-label small fw-semibold text-body">Charge Description</label>
+              <input type="text" name="misc_description" class="form-control" value="{{ default_misc_desc }}" placeholder="Cafeteria Maintenance & Administrative Overhead">
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm" id="btnRunEngine">
+            <i class="bi bi-gear-wide-connected me-2"></i>Run Billing Engine & Generate Entry
+          </button>
+        </form>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Side: Monthly Bill Entries Directory Table (Publish & Print Actions) -->
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm rounded-3 overflow-hidden" id="cardBillRuns">
+      <div class="card-header bg-body-tertiary border-bottom py-3 d-flex justify-content-between align-items-center">
+        <h2 class="card-title h6 mb-0 fw-bold text-body"><i class="bi bi-folder-check me-2 text-success"></i>Monthly Bill Entries & Batches</h2>
+        <span class="badge bg-secondary-subtle text-body border font-monospace">{{ bill_runs|length }} Entries</span>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="bg-body-tertiary text-uppercase small text-body-secondary">
+              <tr>
+                <th class="ps-4">Month Entry</th>
+                <th class="text-center">Billed Employees</th>
+                <th class="text-end">Total Amount</th>
+                <th class="text-center">Entry Status</th>
+                <th class="text-end pe-4">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in bill_runs %}
+              <tr>
+                <td class="ps-4 font-monospace fw-bold text-body">
+                  {{ item.run.period_start|date:"F Y" }}
+                </td>
+                <td class="text-center font-monospace">
+                  <span class="badge bg-secondary-subtle text-body border px-2 py-1">
+                    {{ item.employee_count }} Employees
+                  </span>
+                </td>
+                <td class="text-end font-monospace fw-bold text-primary">
+                  {{ item.total_amount|floatformat:2 }}
+                </td>
+                <td class="text-center">
+                  {% if item.run.status == 'published' %}
+                    <span class="badge bg-success px-2 py-1 font-monospace">Published</span>
+                  {% else %}
+                    <span class="badge bg-warning text-dark px-2 py-1 font-monospace">Draft Entry</span>
+                  {% endif %}
+                </td>
+                <td class="text-end pe-4">
+                  <div class="d-flex gap-1 justify-content-end align-items-center">
+                    {% if item.run.status != 'published' %}
+                    <form method="post" action="{% url 'billing:publish_run' item.run.pk %}" class="d-inline">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-sm btn-success fw-bold px-2 py-1" title="Publish entry and dispatch in-app notifications to all employees" onclick="return confirm('Publish {{ item.run.period_start|date:'F Y' }} monthly bill entry and send in-app notifications to all employees?')">
+                        <i class="bi bi-send me-1"></i>Publish & Notify
+                      </button>
+                    </form>
+                    {% else %}
+                    <span class="badge bg-success-subtle text-success border align-self-center px-2 py-1 me-1" style="font-size:0.75rem;">
+                      <i class="bi bi-check-circle me-1"></i>Notified
+                    </span>
+                    {% endif %}
+
+                    <a href="{% url 'billing:run_report' item.month_str %}" class="btn btn-sm btn-outline-secondary fw-semibold px-2 py-1" title="View master billing summary for {{ item.run.period_start|date:'F Y' }}">
+                      <i class="bi bi-eye me-1"></i>View Bills
+                    </a>
+
+                    <a href="{% url 'billing:run_print' item.month_str %}" class="btn btn-sm btn-outline-primary fw-bold px-2 py-1" target="_blank" title="Print Executive Master A4 Report for {{ item.run.period_start|date:'F Y' }}">
+                      <i class="bi bi-printer me-1"></i>Print Report
+                    </a>
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="5" class="text-body-secondary p-4 text-center">
+                  <i class="bi bi-folder-x fs-4 d-block mb-2 text-muted"></i>
+                  No monthly bill entries generated yet. Select a month on the left to run the billing engine.
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'billing/js/generate_bills.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Edit POS Order – {{ order_ref }} | {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+  <div>
+    <h1 class="page-header-title h3 fw-bold text-body mb-1">Edit POS Order Issuance</h1>
+    <p class="page-header-subtitle text-body-secondary mb-0">Modify quantities, update buyer profile, or add/remove items for Order Ref: <strong class="font-monospace text-primary">{{ order_ref }}</strong>.</p>
+  </div>
+  <a href="{% url 'pos:daily_summary' %}" class="btn btn-outline-secondary btn-sm px-3 fw-bold">
+    <i class="bi bi-arrow-left me-1"></i>Back to Daily Summary
+  </a>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <form method="post" action="{% url 'pos:edit_order' order_ref %}">
+      {% csrf_token %}
+
+      <!-- 1. Customer / Buyer Profile Update -->
+      <div class="card border-0 shadow-sm rounded-3 mb-4">
+        <div class="card-header bg-body-tertiary border-bottom py-3">
+          <h2 class="card-title h6 mb-0 fw-bold text-body"><i class="bi bi-person-gear me-2 text-info"></i>Customer / Buyer Profile</h2>
+        </div>
+        <div class="card-body">
+          <label class="form-label small fw-semibold text-body">Select Buyer (Employee or Walk-in Customer)</label>
+          <select name="buyer_id" class="form-select">
+            <option value="" {% if first_sale.is_walk_in or not first_sale.buyer %}selected{% endif %}>Walk-in Customer (Non-Member)</option>
+            {% for emp in employees %}
+              <option value="{{ emp.id }}" {% if first_sale.buyer_id == emp.id %}selected{% endif %}>
+                {{ emp.full_name }} (P-No: {{ emp.pno|default:"—" }}) – {{ emp.department.name|default:"General" }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <!-- 2. Order Items Quantity Editor -->
+      <div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-4">
+        <div class="card-header bg-body-tertiary border-bottom py-3 d-flex justify-content-between align-items-center">
+          <h2 class="card-title h6 mb-0 fw-bold text-body"><i class="bi bi-cart-check me-2 text-primary"></i>Issued Order Items</h2>
+          <span class="badge bg-secondary-subtle text-body border font-monospace">{{ sales|length }} Line Items</span>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-4">Item Name</th>
+                  <th class="text-center" style="width:18%;">Unit Price</th>
+                  <th class="text-center" style="width:25%;">Quantity</th>
+                  <th class="text-end pe-4" style="width:20%;">Subtotal</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for sale in sales %}
+                <tr>
+                  <td class="ps-4">
+                    <div class="fw-bold text-body">{{ sale.item.name }}</div>
+                    <div class="text-body-secondary small font-monospace">{{ sale.item.category.name|default:"General" }}</div>
+                  </td>
+                  <td class="text-center font-monospace">{{ sale.unit_price|floatformat:2 }}</td>
+                  <td class="text-center">
+                    <div class="input-group input-group-sm mx-auto" style="max-width:120px;">
+                      <input type="number" name="qty_{{ sale.pk }}" value="{{ sale.quantity }}" min="0" class="form-control text-center font-monospace fw-bold">
+                    </div>
+                    <div class="form-text text-muted mt-1" style="font-size:0.7rem;">Set to 0 to remove item</div>
+                  </td>
+                  <td class="text-end pe-4 font-monospace fw-bold text-success fs-6">
+                    {{ sale.amount_paid|floatformat:2 }}
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="4" class="text-body-secondary p-4 text-center">No sales items found for this order.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Add Additional Item to Order -->
+      <div class="card border-0 shadow-sm rounded-3 mb-4">
+        <div class="card-header bg-body-tertiary border-bottom py-3">
+          <h2 class="card-title h6 mb-0 fw-bold text-body"><i class="bi bi-plus-circle me-2 text-success"></i>Add Item to Order (Optional)</h2>
+        </div>
+        <div class="card-body">
+          <div class="row g-2">
+            <div class="col-md-8">
+              <select name="add_item_id" class="form-select">
+                <option value="">-- Select Item to Add --</option>
+                {% for item in all_items %}
+                  <option value="{{ item.id }}">{{ item.name }} — {{ item.price|floatformat:2 }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4">
+              <input type="number" name="add_item_qty" value="1" min="1" class="form-control font-monospace text-center" placeholder="Qty">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Form Actions -->
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-success btn-lg fw-bold flex-grow-1 shadow-sm">
+          <i class="bi bi-check-circle me-1"></i> Save Changes & Update Order
+        </button>
+        <a href="{% url 'pos:daily_summary' %}" class="btn btn-outline-secondary btn-lg fw-semibold px-4">
+          Cancel
+        </a>
+      </div>
+
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,64 @@
+# Python Bytecode & Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+wheels/
+*.egg
+
+# Django Runtime Files
+*.log
+local_settings.py
+db.sqlite3
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
+media/
+staticfiles/
+static_root/
+.media/
+
+# Seeder Credentials & Sensitive Reports
+SEEDER_SUMMARY_AND_CREDENTIALS.txt
+*.credentials.txt
+
+# Environment Variables & Secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+C:\venv/
+
+# IDE & Editor Configs
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Celery Beat
+celerybeat-schedule
+celerybeat.pid
+
+# Node / Frontend
+node_modules/
+npm-debug.log

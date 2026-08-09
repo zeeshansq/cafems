@@ -1,0 +1,15 @@
+/* Tokens – Issue Page CSS */
+
+.form-select-lg { font-size: 0.9375rem; }
+
+#rotiOverrideSection .alert {
+  background: var(--clr-warning-fade);
+  border-left: 4px solid var(--clr-warning) !important;
+  border-radius: var(--radius-md);
+}
+
+/* Member select: mark already-issued in green */
+option[data-issued="true"] {
+  color: var(--clr-success);
+  font-weight: 600;
+}

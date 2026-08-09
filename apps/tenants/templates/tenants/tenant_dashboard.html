@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Platform Tenant Management | {{ site_name }}{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'tenants/css/tenant_dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">Super Admin Tenant Control Center</h1>
+    <p class="page-header-subtitle">Manage multi-tenant organizations, subdomains, and platform subscriptions.</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'tenants:list' %}" class="btn btn-outline-primary">
+      <i class="bi bi-list-task me-1"></i>Directory View
+    </a>
+    <a href="{% url 'tenants:create' %}" class="btn btn-primary" id="btnNewTenant">
+      <i class="bi bi-plus-lg me-1"></i>Create New Tenant
+    </a>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-md-4">
+    <div class="stat-card" id="statTotalTenants">
+      <div class="stat-icon" style="background:var(--clr-primary-fade);color:var(--clr-primary);"><i class="bi bi-buildings"></i></div>
+      <div>
+        <div class="stat-value">{{ total_tenants }}</div>
+        <div class="stat-label">Total Organizations</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card success" id="statActiveTenants">
+      <div class="stat-icon" style="background:var(--clr-success-fade);color:var(--clr-success);"><i class="bi bi-check-circle"></i></div>
+      <div>
+        <div class="stat-value">{{ active_tenants }}</div>
+        <div class="stat-label">Active Tenants</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card warning" id="statSuspendedTenants">
+      <div class="stat-icon" style="background:var(--clr-warning-fade);color:var(--clr-accent-terracotta);"><i class="bi bi-pause-circle"></i></div>
+      <div>
+        <div class="stat-value">{{ suspended_tenants }}</div>
+        <div class="stat-label">Suspended Tenants</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card" id="cardTenantList">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h2 class="card-title"><i class="bi bi-buildings me-2 text-warning"></i>Registered Tenant Organizations</h2>
+    <a href="{% url 'tenants:create' %}" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg me-1"></i>Add Tenant</a>
+  </div>
+  <div class="card-body p-0">
+    {% if tenants %}
+    <div class="table-responsive">
+      <table class="table mb-0">
+        <thead>
+          <tr>
+            <th>Organization</th>
+            <th>Slug</th>
+            <th>Primary Contact</th>
+            <th>Status</th>
+            <th class="text-end">CRUD Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in tenants %}
+          <tr>
+            <td>
+              <div class="fw-bold">{{ t.title }}</div>
+              <div class="text-muted small">{{ t.short_title }}</div>
+            </td>
+            <td><code>{{ t.slug }}</code></td>
+            <td>{{ t.contact_email }}</td>
+            <td>
+              <span class="badge-pill {% if t.status == 'active' %}badge-active{% else %}badge-inactive{% endif %}">
+                {{ t.get_status_display }}
+              </span>
+            </td>
+            <td class="text-end">
+              <div class="btn-group btn-group-sm">
+                <a href="{% url 'tenants:detail' t.slug %}" class="btn btn-outline-primary" title="View Details">
+                  <i class="bi bi-eye"></i>
+                </a>
+                <a href="{% url 'tenants:update' t.slug %}" class="btn btn-outline-secondary" title="Edit Tenant">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <a href="{% url 'tenants:delete' t.slug %}" class="btn btn-outline-danger" title="Delete Tenant">
+                  <i class="bi bi-trash"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state py-5 text-center text-muted">
+      <i class="bi bi-buildings fs-1"></i>
+      <p class="mt-2 mb-0">No tenants registered yet.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'tenants/js/tenant_dashboard.js' %}"></script>
+{% endblock %}

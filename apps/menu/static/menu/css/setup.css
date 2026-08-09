@@ -1,0 +1,53 @@
+/* Cafeteria Setup & Catalog Management Styling - Dark & Light Mode Theme Responsive */
+
+.setup-nav-tabs .nav-link {
+  color: var(--clr-text-muted);
+  border: none;
+  border-bottom: 3px solid transparent;
+  padding: 0.85rem 1.5rem;
+  font-weight: 600;
+  background: transparent;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.setup-nav-tabs .nav-link.active {
+  color: var(--clr-primary);
+  border-bottom-color: var(--clr-primary);
+  background: transparent;
+}
+
+.setup-card {
+  background-color: var(--clr-surface);
+  border: 1px solid var(--clr-border);
+  color: var(--clr-text);
+}
+
+.setup-card-header {
+  background-color: var(--clr-surface);
+  border-bottom: 1px solid var(--clr-border);
+  color: var(--clr-text);
+}
+
+.setup-table {
+  color: var(--clr-text);
+}
+
+.setup-table th {
+  background-color: var(--clr-surface-2);
+  color: var(--clr-text-muted);
+  border-bottom: 1px solid var(--clr-border);
+}
+
+.setup-table td {
+  border-bottom: 1px solid var(--clr-border);
+  color: var(--clr-text);
+  vertical-align: middle;
+}
+
+[data-theme="dark"] .setup-title {
+  color: #f8fafc !important;
+}
+
+[data-theme="light"] .setup-title {
+  color: #0f172a !important;
+}

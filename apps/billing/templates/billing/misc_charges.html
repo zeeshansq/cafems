@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Manage Monthly Misc Charges | {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+  <div>
+    <h1 class="page-header-title h3 fw-bold text-body mb-1">Manage Monthly Misc Charges</h1>
+    <p class="page-header-subtitle text-body-secondary mb-0">
+      Configure fixed maintenance and administrative overhead charges for each month.
+    </p>
+  </div>
+  <a href="{% url 'billing:list' %}" class="btn btn-outline-secondary btn-sm px-3 fw-bold">
+    <i class="bi bi-arrow-left me-1"></i>Back to Bills List
+  </a>
+</div>
+
+<!-- Business Rules Information Box -->
+<div class="alert alert-info border-0 shadow-sm rounded-3 mb-4 d-flex align-items-start gap-3">
+  <i class="bi bi-info-circle-fill fs-3 text-info flex-shrink-0 mt-1"></i>
+  <div>
+    <h2 class="h6 fw-bold mb-1">How Misc Charges Apply to Monthly Bills</h2>
+    <p class="mb-0 small">
+      Monthly Misc Charges are automatically included in an employee's invoice <strong>ONLY IF</strong> the employee has issued at least <strong>1 Lunch Token</strong> during that month. If an employee was absent or had 0 lunch tokens (e.g. only roti or sweet without a lunch token), the Misc Charge is <strong>automatically waived / excluded</strong> from their bill.
+    </p>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Add New Misc Charge Form -->
+  <div class="col-md-5">
+    <div class="card border-0 shadow-sm rounded-3">
+      <div class="card-header bg-body-tertiary border-bottom py-3">
+        <h2 class="card-title h6 mb-0 fw-bold text-body"><i class="bi bi-plus-circle me-2 text-primary"></i>Add Monthly Misc Charge</h2>
+      </div>
+      <div class="card-body">
+        <form method="post" action="{% url 'billing:add_misc_charge' %}">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-body">Target Month</label>
+            {{ form.month }}
+            <div class="form-text" style="font-size:0.75rem;">Select any date in the target month (e.g. July 1, 2026).</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-body">Misc Amount</label>
+            {{ form.amount }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-body">Description</label>
+            {{ form.description }}
+            <div class="form-text" style="font-size:0.75rem;">e.g., Cafeteria Maintenance & Administrative Overhead</div>
+          </div>
+          <button type="submit" class="btn btn-primary w-100 fw-bold shadow-sm">
+            <i class="bi bi-save me-1"></i> Save Misc Charge Rule
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recorded Misc Charges Directory Table -->
+  <div class="col-md-7">
+    <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+      <div class="card-header bg-body-tertiary border-bottom py-3 d-flex justify-content-between align-items-center">
+        <h2 class="card-title h6 mb-0 fw-bold text-body"><i class="bi bi-list-check me-2 text-info"></i>Configured Monthly Misc Charges</h2>
+        <span class="badge bg-secondary-subtle text-body border font-monospace">{{ misc_charges|length }} Configured</span>
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="bg-body-tertiary text-uppercase small text-body-secondary">
+            <tr>
+              <th class="ps-4">Month</th>
+              <th>Description</th>
+              <th class="text-end pe-4">Fixed Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in misc_charges %}
+            <tr>
+              <td class="ps-4 font-monospace fw-bold text-body">{{ item.month|date:"F Y" }}</td>
+              <td class="text-body-secondary small">{{ item.description }}</td>
+              <td class="text-end pe-4 font-monospace fw-bold text-primary fs-6">{{ item.amount|floatformat:2 }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="3" class="text-body-secondary p-4 text-center">
+                <i class="bi bi-folder-x fs-4 d-block mb-2 text-muted"></i>
+                No monthly misc charges configured yet.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

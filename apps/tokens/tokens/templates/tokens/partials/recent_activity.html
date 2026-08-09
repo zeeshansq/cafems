@@ -1,0 +1,65 @@
+{# htmx partial: recent token activity feed table #}
+{% if tokens %}
+  <div class="table-responsive">
+    <table class="table align-middle mb-0 text-sm">
+      <thead class="bg-surface-2 text-uppercase text-muted" style="font-size:0.75rem;">
+        <tr>
+          <th class="ps-3 py-2">Member</th>
+          <th class="text-center py-2">Token Qty</th>
+          <th class="text-center py-2">Ex. Roti</th>
+          <th class="text-center py-2">Ex. Sweet</th>
+          <th class="text-end pe-3 py-2">Time</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for token in tokens %}
+          <tr class="border-bottom">
+            <td class="ps-3 py-2">
+              <div class="d-flex align-items-center gap-2">
+                {% if token.employee.photo %}
+                  <img src="{{ token.employee.photo.url }}" alt="{{ token.employee.full_name }}" class="rounded-circle border" style="width:32px;height:32px;object-fit:cover;">
+                {% else %}
+                  <div class="rounded-circle bg-warning text-dark fw-bold d-flex align-items-center justify-content-center" style="width:32px;height:32px;font-size:0.8rem;">
+                    {{ token.employee.full_name|slice:":2"|upper }}
+                  </div>
+                {% endif %}
+                <div>
+                  <div class="fw-bold text-dark" style="font-size:0.85rem;">{{ token.employee.full_name }}</div>
+                  <div class="text-muted" style="font-size:0.72rem;">{{ token.employee.pno|default:"—" }}</div>
+                </div>
+              </div>
+            </td>
+            <td class="text-center py-2">
+              <span class="badge bg-primary font-monospace px-2.5 py-1">1</span>
+              {% if token.roti_override %}
+                <div style="font-size:0.65rem;" class="text-danger fw-bold mt-0.5">Override</div>
+              {% endif %}
+            </td>
+            <td class="text-center py-2">
+              {% if token.extra_roti_qty > 0 %}
+                <span class="badge bg-secondary">+{{ token.extra_roti_qty }}</span>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td class="text-center py-2">
+              {% if token.extra_sweet_qty > 0 %}
+                <span class="badge bg-warning text-dark">+{{ token.extra_sweet_qty }}</span>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td class="text-end pe-3 py-2 text-muted" style="font-size:0.75rem;">
+              {{ token.issue_time|timesince }} ago
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="empty-state py-4 text-center text-muted">
+    <i class="bi bi-ticket-perforated fs-2 opacity-50 mb-1"></i>
+    <div class="text-sm">No tokens issued today yet.</div>
+  </div>
+{% endif %}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Delete Tenant | {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title text-danger">Delete Organization Tenant</h1>
+    <p class="page-header-subtitle">Confirm tenant deletion for platform administrator.</p>
+  </div>
+  <a href="{% url 'tenants:list' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Cancel & Back to List
+  </a>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-5">
+    <div class="card border-danger shadow-lg">
+      <div class="card-header bg-danger-subtle text-danger-emphasis">
+        <h2 class="card-title"><i class="bi bi-exclamation-triangle-fill me-2"></i>Warning: Permanent Deletion</h2>
+      </div>
+      <div class="card-body">
+        <p class="mb-3">Are you sure you want to permanently delete the tenant organization <strong>"{{ object.title }}"</strong> (Slug: <code>{{ object.slug }}</code>)?</p>
+        <div class="alert alert-warning small">
+          <i class="bi bi-info-circle me-1"></i>This action will remove the tenant configuration and cannot be undone.
+        </div>
+        <form method="post" class="d-flex gap-2 justify-content-end mt-4">
+          {% csrf_token %}
+          <a href="{% url 'tenants:list' %}" class="btn btn-outline-secondary">Cancel</a>
+          <button type="submit" class="btn btn-danger fw-bold">
+            <i class="bi bi-trash-fill me-1"></i>Delete Tenant Permanently
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

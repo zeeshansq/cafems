@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ object.title }} | {{ site_name }}{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'tenants/css/tenant_detail.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">{{ object.title }}</h1>
+    <p class="page-header-subtitle">Slug: <code>{{ object.slug }}</code> &bull; Currency: {{ object.currency }}</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'tenants:list' %}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i>Back to Directory
+    </a>
+    <a href="{% url 'tenants:update' object.slug %}" class="btn btn-primary">
+      <i class="bi bi-pencil me-1"></i>Edit Tenant
+    </a>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h2 class="card-title"><i class="bi bi-building me-2 text-warning"></i>Tenant Configuration Details</h2>
+    <span class="badge-pill {% if object.status == 'active' %}badge-active{% else %}badge-inactive{% endif %}">
+      {{ object.get_status_display }}
+    </span>
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-sm-6 col-md-4">
+        <div class="text-muted small">Organization Name</div>
+        <div class="fw-bold fs-6">{{ object.title }}</div>
+      </div>
+      <div class="col-sm-6 col-md-4">
+        <div class="text-muted small">Short Title</div>
+        <div class="fw-bold fs-6">{{ object.short_title }}</div>
+      </div>
+      <div class="col-sm-6 col-md-4">
+        <div class="text-muted small">Subdomain / Slug</div>
+        <div><code>{{ object.slug }}</code></div>
+      </div>
+      <div class="col-sm-6 col-md-4">
+        <div class="text-muted small">Contact Email</div>
+        <div>{{ object.contact_email }}</div>
+      </div>
+      <div class="col-sm-6 col-md-4">
+        <div class="text-muted small">Billing Currency</div>
+        <div class="fw-bold">{{ object.currency }}</div>
+      </div>
+      <div class="col-sm-6 col-md-4">
+        <div class="text-muted small">Created On</div>
+        <div>{{ object.created_at|date:"F j, Y, g:i a" }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2 class="card-title">Super Admin Management Toolbar</h2></div>
+  <div class="card-body">
+    <div class="d-flex flex-wrap gap-2">
+      <a href="{% url 'tenants:update' object.slug %}" class="btn btn-outline-primary">
+        <i class="bi bi-pencil me-1"></i>Edit Configuration
+      </a>
+
+      {% if object.status == 'active' %}
+      <form method="post" action="{% url 'tenants:suspend' object.slug %}" class="d-inline">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline-warning" onclick="return confirm('Suspend this tenant organization?')">
+          <i class="bi bi-pause-circle me-1"></i>Suspend Tenant
+        </button>
+      </form>
+      {% else %}
+      <form method="post" action="{% url 'tenants:activate' object.slug %}" class="d-inline">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline-success">
+          <i class="bi bi-play-circle me-1"></i>Activate Tenant
+        </button>
+      </form>
+      {% endif %}
+
+      <a href="{% url 'tenants:delete' object.slug %}" class="btn btn-outline-danger ms-auto">
+        <i class="bi bi-trash me-1"></i>Delete Tenant
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'tenants/js/tenant_detail.js' %}"></script>
+{% endblock %}

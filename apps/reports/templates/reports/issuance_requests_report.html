@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }} | {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+
+  {# ── Header Bar ────────────────────────────────────────────────────── #}
+  <div class="d-flex flex-wrap align-items-center justify-content-between pb-3 mb-3 border-bottom gap-2">
+    <div>
+      <h1 class="h3 fw-bold mb-0 text-body d-flex align-items-center">
+        <i class="bi bi-calendar-plus-fill me-2 text-success"></i>Token Issuance Requests Report (OPEN)
+      </h1>
+      <p class="text-body-secondary small mb-0">
+        Review member requests for token activation (OPEN requests), start dates, reasons, and approval logs.
+      </p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'reports:export_csv' %}?report_type=issuance_requests&start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}&department_id={{ current_dept_id }}&employee_id={{ current_emp_id }}&q={{ q }}"
+         class="btn btn-outline-success btn-sm fw-bold">
+        <i class="bi bi-file-earmark-spreadsheet me-1"></i>Export CSV
+      </a>
+      <a href="{% url 'reports:index' %}" class="btn btn-outline-secondary btn-sm fw-bold">
+        <i class="bi bi-arrow-left me-1"></i>Reports Hub
+      </a>
+    </div>
+  </div>
+
+  {# ── Global Filter Bar ─────────────────────────────────────────────── #}
+  {% include "reports/partials/filter_bar.html" %}
+
+  {# ── Data Roster Table ────────────────────────────────────────────── #}
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-body-tertiary py-2.5 px-3 border-bottom d-flex justify-content-between align-items-center">
+      <h2 class="h6 mb-0 fw-bold text-body"><i class="bi bi-calendar-plus me-2 text-success"></i>Token Issuance Requests Ledger</h2>
+      <span class="badge bg-secondary-subtle text-body border">{{ issuance_requests|length }} Requests</span>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 text-nowrap">
+          <thead class="table-light text-uppercase small text-body-secondary">
+            <tr>
+              <th>Request Date</th>
+              <th>Employee Member</th>
+              <th>Department</th>
+              <th>Requested Period</th>
+              <th>Reason / Note</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for req in issuance_requests %}
+              <tr>
+                <td class="small fw-bold">{{ req.created_at|date:"d-M-Y" }}</td>
+                <td>
+                  <span class="fw-bold text-body">{{ req.employee.full_name }}</span>
+                  <span class="badge bg-dark text-white font-monospace ms-1">{{ req.employee.pno|default:"—" }}</span>
+                </td>
+                <td><span class="badge bg-secondary-subtle text-body border">{{ req.employee.department.name|default:"General" }}</span></td>
+                <td class="font-monospace small">{{ req.date_range_start }} to {{ req.date_range_end }}</td>
+                <td class="small text-body-secondary" style="max-width:260px;overflow:hidden;text-overflow:ellipsis;">{{ req.reason|default:"Standard request" }}</td>
+                <td><span class="badge bg-success-subtle text-success border">{{ req.get_status_display }}</span></td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="6" class="text-center py-5 text-body-secondary">No token issuance requests found for selected date range.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

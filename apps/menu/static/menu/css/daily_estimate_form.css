@@ -1,0 +1,56 @@
+/* Daily Menu Entry & Costing Form Styling - Dark & Light Mode Responsive */
+
+.form-section-card {
+  background-color: var(--clr-surface);
+  border: 1px solid var(--clr-border);
+  color: var(--clr-text);
+}
+
+.form-section-header {
+  background-color: var(--clr-surface);
+  border-bottom: 1px solid var(--clr-border);
+  color: var(--clr-text);
+}
+
+.quantity-box {
+  background-color: var(--clr-surface-2);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+}
+
+.readonly-input {
+  background-color: var(--clr-surface-3) !important;
+  border-color: var(--clr-border) !important;
+  color: var(--clr-text) !important;
+  font-weight: 600;
+}
+
+[data-theme="light"] .readonly-input {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+.unit-cost-input {
+  background-color: var(--clr-surface-3) !important;
+  border-color: var(--clr-primary) !important;
+  color: var(--clr-primary) !important;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+[data-theme="light"] .unit-cost-input {
+  background-color: #f0fdf4 !important;
+  border-color: #16a34a !important;
+  color: #15803d !important;
+}
+
+.spin-animation {
+  animation: spin 1s infinite linear;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

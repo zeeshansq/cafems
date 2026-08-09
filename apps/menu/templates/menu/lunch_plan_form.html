@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if is_edit %}Edit Master Lunch Plan Entry{% else %}Add Master Lunch Plan Entry{% endif %} | {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3 fw-bold text-dark mb-1">
+        <i class="bi bi-journal-plus theme-text-primary me-2"></i>{% if is_edit %}Edit Master Lunch Plan Entry{% else %}Add Master Lunch Plan Entry{% endif %}
+      </h1>
+      <p class="text-muted small mb-0">Configure generic rotating roster dish for Week 1 to 5.</p>
+    </div>
+    <a href="{% url 'menu:lunch_plan' %}" class="btn btn-outline-secondary btn-sm px-3">
+      <i class="bi bi-arrow-left me-1"></i> Back to 5-Week Roster
+    </a>
+  </div>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-7 col-md-9">
+      <div class="card border-0 shadow-sm rounded-3">
+        <div class="card-header bg-dark text-white py-3">
+          <h5 class="card-title mb-0 fw-bold fs-6">
+            <i class="bi bi-calendar-week me-2 text-warning"></i>Master Roster Entry Details
+          </h5>
+        </div>
+        <div class="card-body p-4">
+          <form method="post">
+            {% csrf_token %}
+
+            <div class="row g-3 mb-3">
+              <div class="col-6">
+                <label class="form-label fw-bold text-muted small">Week of Month <span class="text-danger">*</span></label>
+                {{ form.week_of_month }}
+              </div>
+              <div class="col-6">
+                <label class="form-label fw-bold text-muted small">Day of Week <span class="text-danger">*</span></label>
+                {{ form.day_of_week }}
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-bold text-dark">Catering Dish Name <span class="text-danger">*</span></label>
+              {{ form.dish_name }}
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-bold text-muted small">Ingredients & Special Notes</label>
+              {{ form.description }}
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-4">
+                <label class="form-label fw-bold text-muted small">Default Cook / Chef</label>
+                {{ form.cook }}
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-bold text-muted small">Default Roti / Naan Selection</label>
+                {{ form.roti_price_obj }}
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-bold text-muted small">Default Sweet Option</label>
+                {{ form.sweet }}
+              </div>
+            </div>
+
+            <div class="mb-4 form-check">
+              {{ form.is_published }}
+              <label class="form-check-label fw-semibold text-dark" for="{{ form.is_published.id_for_label }}">Active & Published in Roster</label>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 border-top pt-3">
+              <a href="{% url 'menu:lunch_plan' %}" class="btn btn-light px-4">Cancel</a>
+              <button type="submit" class="btn btn-primary fw-bold px-4 shadow-sm">
+                <i class="bi bi-check-lg me-1"></i> Save Master Plan Entry
+              </button>
+            </div>
+
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

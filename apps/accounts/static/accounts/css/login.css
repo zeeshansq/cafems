@@ -1,0 +1,472 @@
+/*
+ * CafeMS – Gourmet Saffron & Terracotta Login Styles
+ * Theme: Warm Culinary / Dark Roast Coffee / Gourmet Dining
+ */
+
+:root {
+  --bg-dark-roast: #0c0a09;
+  --glass-bg: rgba(28, 25, 23, 0.65);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-border-focus: rgba(245, 158, 11, 0.6);
+  --clr-saffron: #f59e0b;
+  --clr-terracotta: #ea580c;
+  --clr-mint: #10b981;
+  --text-main: #fafaf9;
+  --text-muted: #a8a29e;
+}
+
+/* Page Layout */
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  background-color: var(--bg-dark-roast);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: var(--text-main);
+  padding: 1.5rem 1rem;
+}
+
+/* Culinary Mesh Gradient Orbs */
+.login-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.login-bg-mesh {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    radial-gradient(at 15% 15%, rgba(245, 158, 11, 0.2) 0px, transparent 50%),
+    radial-gradient(at 85% 15%, rgba(234, 88, 12, 0.18) 0px, transparent 50%),
+    radial-gradient(at 15% 85%, rgba(16, 185, 129, 0.12) 0px, transparent 50%),
+    radial-gradient(at 85% 85%, rgba(217, 119, 6, 0.15) 0px, transparent 50%);
+  filter: blur(40px);
+  opacity: 0.8;
+}
+
+.login-bg-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  will-change: transform;
+  animation: floatCulinaryOrb 18s ease-in-out infinite alternate;
+}
+
+.login-bg-orb-saffron {
+  width: 520px;
+  height: 520px;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.3), transparent 70%);
+  top: -160px;
+  left: -120px;
+}
+
+.login-bg-orb-terracotta {
+  width: 460px;
+  height: 460px;
+  background: radial-gradient(circle, rgba(234, 88, 12, 0.25), transparent 70%);
+  bottom: -140px;
+  right: -100px;
+  animation-delay: -5s;
+}
+
+.login-bg-orb-mint {
+  width: 360px;
+  height: 360px;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.18), transparent 70%);
+  top: 45%;
+  left: 60%;
+  animation-delay: -10s;
+}
+
+@keyframes floatCulinaryOrb {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  50%  { transform: translate3d(30px, -25px, 0) scale(1.04); }
+  100% { transform: translate3d(-20px, 20px, 0) scale(0.96); }
+}
+
+/* ─── GPU-Optimized Floating Upward Food Icons Layer ────────────────── */
+.food-icon-rain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.falling-food-icon {
+  position: absolute;
+  bottom: -75px;
+  top: auto;
+  color: var(--clr-saffron);
+  will-change: transform, opacity;
+  animation: foodFloatUp linear infinite;
+  user-select: none;
+  backface-visibility: hidden;
+}
+
+.falling-food-icon.color-terracotta {
+  color: var(--clr-terracotta);
+}
+
+.falling-food-icon.color-mint {
+  color: var(--clr-mint);
+}
+
+.falling-food-icon.color-gold {
+  color: #fbbf24;
+}
+
+@keyframes foodFloatUp {
+  0% {
+    transform: translate3d(0, 80px, 0) rotate(0deg) scale(0.85);
+    opacity: 0;
+  }
+  15% {
+    opacity: var(--target-opacity, 0.2);
+  }
+  85% {
+    opacity: var(--target-opacity, 0.2);
+  }
+  100% {
+    transform: translate3d(0, -115vh, 0) rotate(360deg) scale(1.15);
+    opacity: 0;
+  }
+}
+
+/* Top Bar */
+.login-top-bar {
+  position: absolute;
+  top: 1.5rem;
+  left: 1.5rem;
+  right: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 10;
+}
+
+.system-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.85rem;
+  background: rgba(28, 25, 23, 0.7);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 9999px;
+  backdrop-filter: blur(12px);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--clr-saffron);
+  box-shadow: 0 0 10px var(--clr-saffron);
+  animation: pulseSaffron 2s infinite;
+}
+
+@keyframes pulseSaffron {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.5; transform: scale(0.85); }
+}
+
+/* ─── Expanded Login Card Container (Width enlarged to 540px) ────────── */
+.login-container {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 540px;
+  margin: auto;
+}
+
+/* Glassmorphism Card */
+.login-card {
+  position: relative;
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  border-top: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 1.75rem;
+  padding: 2.75rem 2.5rem;
+  box-shadow:
+    0 30px 60px -12px rgba(0, 0, 0, 0.6),
+    0 18px 36px -18px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  animation: cardEntrance 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes cardEntrance {
+  from { opacity: 0; transform: translate3d(0, 24px, 0) scale(0.97); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+/* Light Spot */
+.card-light-spot {
+  position: absolute;
+  width: 250px;
+  height: 250px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.18), transparent 70%);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.3s;
+  opacity: 0;
+  z-index: 0;
+}
+
+.login-card:hover .card-light-spot {
+  opacity: 1;
+}
+
+/* Brand Section */
+.login-brand {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.brand-logo-ring {
+  display: inline-flex;
+  padding: 4px;
+  border-radius: 1.25rem;
+  background: linear-gradient(135deg, var(--clr-saffron), var(--clr-terracotta));
+  margin-bottom: 0.85rem;
+  box-shadow: 0 6px 20px rgba(234, 88, 12, 0.35);
+}
+
+.login-brand-icon {
+  width: 68px;
+  height: 68px;
+  border-radius: 1.1rem;
+  background: linear-gradient(135deg, var(--clr-saffron) 0%, var(--clr-terracotta) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.2rem;
+  color: #ffffff;
+}
+
+.login-brand-name {
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 0.25rem;
+  letter-spacing: -0.025em;
+  background: linear-gradient(180deg, #ffffff 0%, #d6d3d1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.login-brand-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--clr-saffron);
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+}
+
+/* Quick Test Credentials Bar */
+.quick-credentials-bar {
+  position: relative;
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(245, 158, 11, 0.3);
+  border-radius: 1rem;
+  padding: 0.85rem;
+  text-align: center;
+}
+
+.quick-creds-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.btn-quick-login {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e7e5e4;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.4rem 0.9rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s;
+}
+
+.btn-quick-login:hover {
+  background: rgba(245, 158, 11, 0.25);
+  border-color: var(--clr-saffron);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+/* Form Section */
+.login-form-wrap {
+  position: relative;
+  z-index: 1;
+}
+
+.login-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 0.25rem;
+}
+
+.login-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+}
+
+.login-form-wrap .form-label {
+  color: #e7e5e4;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.login-input-group {
+  background: rgba(12, 10, 9, 0.6);
+  border: 1.5px solid var(--glass-border);
+  border-radius: 0.85rem;
+  overflow: hidden;
+  transition: all 0.25s ease;
+}
+
+.login-input-group:focus-within {
+  border-color: var(--clr-saffron);
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.22);
+  background: rgba(12, 10, 9, 0.85);
+}
+
+.login-input-group .input-group-text {
+  background: transparent !important;
+  border: none !important;
+  color: var(--text-muted);
+  font-size: 1.15rem;
+  padding-left: 1.1rem;
+  padding-right: 0.5rem;
+}
+
+.login-input-group:focus-within .input-group-text {
+  color: var(--clr-saffron);
+}
+
+.login-input-group .form-control {
+  background: transparent !important;
+  border: none !important;
+  color: #ffffff !important;
+  font-size: 0.95rem;
+  height: 50px;
+  box-shadow: none !important;
+  padding-left: 0.5rem;
+}
+
+.login-input-group .form-control::placeholder {
+  color: rgba(168, 162, 158, 0.45);
+}
+
+.btn-toggle-pwd {
+  cursor: pointer;
+  padding-right: 1.1rem !important;
+}
+
+.btn-toggle-pwd:hover {
+  color: #ffffff !important;
+}
+
+.text-muted-glow {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.custom-checkbox .form-check-input {
+  width: 1.15rem;
+  height: 1.15rem;
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.25);
+  cursor: pointer;
+}
+
+.custom-checkbox .form-check-input:checked {
+  background-color: var(--clr-terracotta);
+  border-color: var(--clr-terracotta);
+  box-shadow: 0 0 10px rgba(234, 88, 12, 0.5);
+}
+
+.security-tag {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Submit CTA Button */
+.login-btn {
+  height: 52px;
+  background: linear-gradient(135deg, var(--clr-saffron) 0%, var(--clr-terracotta) 100%);
+  border: none;
+  border-radius: 0.85rem;
+  font-weight: 700;
+  font-size: 0.98rem;
+  color: #ffffff !important;
+  box-shadow: 0 8px 25px -4px rgba(234, 88, 12, 0.45);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.login-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px -4px rgba(234, 88, 12, 0.65);
+  background: linear-gradient(135deg, #d97706 0%, #c2410c 100%);
+}
+
+/* Error Alert */
+.login-error {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.85rem;
+  margin-bottom: 1.25rem;
+}
+
+/* Footer */
+.login-footer {
+  position: relative;
+  z-index: 1;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 576px) {
+  .login-container {
+    max-width: 100%;
+  }
+  .login-card {
+    padding: 2rem 1.5rem;
+  }
+}

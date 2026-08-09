@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Manage Organizations & Tenants | {{ site_name }}{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'tenants/css/tenant_list.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">Tenants Roster</h1>
+    <p class="page-header-subtitle">Manage organization subdomains, status, and system settings.</p>
+  </div>
+  <a href="{% url 'tenants:create' %}" class="btn btn-primary">
+    <i class="bi bi-plus-lg me-1"></i>Create New Tenant
+  </a>
+</div>
+
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table mb-0">
+        <thead>
+          <tr>
+            <th>Organization</th>
+            <th>Slug Identifier</th>
+            <th>Contact Email</th>
+            <th>Status</th>
+            <th class="text-end">CRUD Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in tenants %}
+          <tr>
+            <td>
+              <strong>{{ t.title }}</strong>
+              <div class="text-muted small">{{ t.short_title }}</div>
+            </td>
+            <td><code>{{ t.slug }}</code></td>
+            <td>{{ t.contact_email }}</td>
+            <td>
+              <span class="badge-pill {% if t.status == 'active' %}badge-active{% else %}badge-inactive{% endif %}">
+                {{ t.get_status_display }}
+              </span>
+            </td>
+            <td class="text-end">
+              <div class="btn-group btn-group-sm">
+                <a href="{% url 'tenants:detail' t.slug %}" class="btn btn-outline-primary" title="View Details">
+                  <i class="bi bi-eye me-1"></i>View
+                </a>
+                <a href="{% url 'tenants:update' t.slug %}" class="btn btn-outline-secondary" title="Edit Tenant">
+                  <i class="bi bi-pencil me-1"></i>Edit
+                </a>
+                <a href="{% url 'tenants:delete' t.slug %}" class="btn btn-outline-danger" title="Delete Tenant">
+                  <i class="bi bi-trash me-1"></i>Delete
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" class="text-center text-muted py-4">No organizations registered yet.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'tenants/js/tenant_list.js' %}"></script>
+{% endblock %}

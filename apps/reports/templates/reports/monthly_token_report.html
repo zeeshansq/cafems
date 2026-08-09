@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }} | {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+
+  {# ── Header Bar ────────────────────────────────────────────────────── #}
+  <div class="d-flex flex-wrap align-items-center justify-content-between pb-3 mb-3 border-bottom gap-2">
+    <div>
+      <h1 class="h3 fw-bold mb-0 text-body d-flex align-items-center">
+        <i class="bi bi-ticket-perforated-fill me-2 text-warning"></i>Monthly Lunch Token Summary Report
+      </h1>
+      <p class="text-body-secondary small mb-0">
+        Period total lunch tokens issued, extra roti, extra sweet, and attendance days per employee member.
+      </p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'reports:export_csv' %}?report_type=tokens&start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}&department_id={{ current_dept_id }}&employee_id={{ current_emp_id }}&q={{ q }}"
+         class="btn btn-outline-success btn-sm fw-bold">
+        <i class="bi bi-file-earmark-spreadsheet me-1"></i>Export CSV
+      </a>
+      <a href="{% url 'reports:index' %}" class="btn btn-outline-secondary btn-sm fw-bold">
+        <i class="bi bi-arrow-left me-1"></i>Reports Hub
+      </a>
+    </div>
+  </div>
+
+  {# ── Global Filter Bar ─────────────────────────────────────────────── #}
+  {% include "reports/partials/filter_bar.html" %}
+
+  {# ── KPI Summary Cards ─────────────────────────────────────────────── #}
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0 bg-primary-subtle text-primary p-3 rounded-3">
+        <div class="small fw-semibold text-uppercase">Total Tokens Issued</div>
+        <div class="h2 mb-0 fw-bold font-monospace">{{ total_tokens_sum }}</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0 bg-success-subtle text-success p-3 rounded-3">
+        <div class="small fw-semibold text-uppercase">Total Extra Roti</div>
+        <div class="h2 mb-0 fw-bold font-monospace">{{ total_roti_sum }}</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0 bg-warning-subtle text-warning-emphasis p-3 rounded-3">
+        <div class="small fw-semibold text-uppercase">Total Extra Sweets</div>
+        <div class="h2 mb-0 fw-bold font-monospace">{{ total_sweet_sum }}</div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Data Roster Table ────────────────────────────────────────────── #}
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-body-tertiary py-2.5 px-3 border-bottom d-flex justify-content-between align-items-center">
+      <h2 class="h6 mb-0 fw-bold text-body"><i class="bi bi-list-check me-2 text-warning"></i>Lunch Tokens Summary Roster</h2>
+      <span class="badge bg-secondary-subtle text-body border">{{ token_summary|length }} Records Found</span>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 text-nowrap">
+          <thead class="table-light text-uppercase small text-body-secondary">
+            <tr>
+              <th>#</th>
+              <th>Employee Name</th>
+              <th>P-No</th>
+              <th>Department</th>
+              <th class="text-center">Total Tokens</th>
+              <th class="text-center">Extra Roti</th>
+              <th class="text-center">Extra Sweet</th>
+              <th class="text-center">Days Attended</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in token_summary %}
+              <tr>
+                <td>{{ forloop.counter }}</td>
+                <td class="fw-bold text-body">{{ row.employee__full_name }}</td>
+                <td><span class="badge bg-dark text-white font-monospace">{{ row.employee__pno|default:"—" }}</span></td>
+                <td><span class="badge bg-secondary-subtle text-body border">{{ row.employee__department__name|default:"General" }}</span></td>
+                <td class="text-center font-monospace fw-bold text-primary fs-6">{{ row.total_tokens }}</td>
+                <td class="text-center font-monospace text-success">+{{ row.total_roti }}</td>
+                <td class="text-center font-monospace text-warning-emphasis">+{{ row.total_sweet }}</td>
+                <td class="text-center font-monospace fw-bold">{{ row.days_attended }}</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="8" class="text-center py-5 text-body-secondary">No token summary records found matching the filter criteria.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

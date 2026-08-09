@@ -1,0 +1,286 @@
+{% extends "base_minimal.html" %}
+{% load static %}
+
+{% block title %}Daily Costing Executive Summary Report — {{ estimate.date }} | {{ tenant.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .a4-page-container {
+    width: 210mm;
+    min-height: 297mm;
+    box-sizing: border-box;
+  }
+
+  .report-metric-card {
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 8px;
+    padding: 0.6rem 0.8rem;
+    background: #fdfdfd;
+  }
+
+  .report-metric-card .metric-lbl {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6c757d;
+    font-weight: 700;
+  }
+
+  .report-metric-card .metric-val {
+    font-size: 1.2rem;
+    font-weight: 800;
+    line-height: 1.2;
+    margin-top: 0.2rem;
+  }
+
+  .report-table th {
+    font-size: 0.72rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    background-color: #f8f9fa !important;
+    padding: 0.4rem 0.6rem !important;
+  }
+
+  .report-table td {
+    padding: 0.4rem 0.6rem !important;
+    font-size: 0.78rem !important;
+  }
+
+  @media print {
+    @page {
+      size: A4 portrait;
+      margin: 8mm 8mm 8mm 8mm;
+    }
+    body {
+      background: #fff !important;
+      font-size: 10pt;
+    }
+    .print-controls-bar {
+      display: none !important;
+    }
+    .a4-page-container {
+      width: 100% !important;
+      min-height: auto !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      box-shadow: none !important;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Top Print Bar (Hidden on print) -->
+<div class="print-controls-bar d-print-none bg-dark text-white p-2 shadow-sm sticky-top">
+  <div class="container-fluid d-flex justify-content-between align-items-center">
+    <div class="fw-bold small">
+      <i class="bi bi-file-earmark-pdf me-2 text-warning"></i>Executive Daily Costing Report Preview (A4 Printable)
+    </div>
+    <div class="d-flex gap-2">
+      <button onclick="window.print()" class="btn btn-warning btn-sm fw-bold text-dark px-3">
+        <i class="bi bi-printer me-1"></i> Print Report
+      </button>
+      <button onclick="window.close()" class="btn btn-outline-light btn-sm px-3">
+        <i class="bi bi-x-lg me-1"></i> Close
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- A4 Document Container -->
+<div class="a4-page-container my-3 mx-auto bg-white shadow-lg p-4">
+
+  <!-- 1. Document Header -->
+  <div class="d-flex justify-content-between align-items-center border-bottom border-2 border-primary pb-3 mb-3">
+    <div class="d-flex align-items-center gap-3">
+      {% if tenant.logo_url %}
+        <img src="{{ tenant.logo_url }}" alt="{{ tenant.title }}" style="max-height: 52px; max-width: 130px; object-fit: contain;">
+      {% else %}
+        <div class="bg-primary text-white rounded-2 d-flex align-items-center justify-content-center fw-bold fs-4" style="width: 48px; height: 48px;">
+          {{ tenant.short_title|default:"CMS"|slice:":3" }}
+        </div>
+      {% endif %}
+      <div>
+        <h1 class="h4 mb-0 fw-bold text-dark lh-1">{{ tenant.title }}</h1>
+        <div class="text-secondary fw-semibold small">{{ tenant.short_title }} — Cafeteria & Daily Menu Costing Audit</div>
+        <div class="text-muted" style="font-size:0.68rem;">{{ tenant.contact_email }} | {{ tenant.contact_phone }}</div>
+      </div>
+    </div>
+    <div class="text-end">
+      <span class="badge bg-primary text-uppercase px-2 py-1 mb-1" style="font-size:0.68rem;">Official Daily Audit Report</span>
+      <div class="h5 mb-0 fw-bold text-dark mt-1">{{ estimate.date|date:"F d, Y" }}</div>
+      <div class="text-muted" style="font-size:0.65rem;">Ref: #DLS-00{{ estimate.id }}-{{ estimate.date|date:"Ymd" }}</div>
+    </div>
+  </div>
+
+  <!-- 2. Dish & Preparation Spotlight Banner -->
+  <div class="p-3 bg-light rounded-3 mb-3 border border-secondary-subtle">
+    <div class="row align-items-center">
+      <div class="col-md-7">
+        <div class="text-uppercase text-primary fw-bold tracking-wider mb-1" style="font-size:0.65rem;">Prepared Meal Dish</div>
+        <h2 class="h4 mb-0 fw-bold text-dark"><i class="bi bi-egg-fried text-warning me-2"></i>{{ estimate.dish_name|default:"Standard Daily Lunch" }}</h2>
+      </div>
+      <div class="col-md-5 text-md-end border-start border-md-0 border-secondary-subtle ps-md-3 mt-2 mt-md-0 small">
+        <div class="mb-1"><strong class="text-secondary">Chef / Cook:</strong> {{ estimate.cook.name|default:"Unassigned" }}</div>
+        <div class="mb-1"><strong class="text-secondary">Roti Type:</strong> {{ estimate.get_roti_type_display }} (Rate: {{ estimate.roti_unit_price }})</div>
+        <div class="mb-1"><strong class="text-secondary">Sweet Item:</strong> {{ estimate.sweet.name|default:"None (NA)" }} {% if estimate.sweet %}(Rate: {{ estimate.sweet_unit_price }}){% endif %}</div>
+        <div>
+          <strong class="text-secondary">Kitchen Control Status:</strong> 
+          {% if estimate.is_locked %}
+            <span class="badge bg-secondary"><i class="bi bi-lock-fill me-1"></i>Locked & Audited</span>
+          {% else %}
+            <span class="badge bg-success"><i class="bi bi-unlock-fill me-1"></i>Active / Open</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Key Metrics & Variances Grid -->
+  <div class="row g-2 mb-3">
+    <div class="col-3">
+      <div class="report-metric-card text-center">
+        <div class="metric-lbl">Lunch Tokens</div>
+        <div class="metric-val text-primary">{{ estimate.actual_tokens_issued }}</div>
+        <div class="text-muted mt-1" style="font-size:0.65rem;">
+          Plan: {{ estimate.planned_count }} | Var: {% if token_variance > 0 %}+{% endif %}{{ token_variance }}
+        </div>
+      </div>
+    </div>
+    <div class="col-3">
+      <div class="report-metric-card text-center">
+        <div class="metric-lbl">Extra Roti Issued</div>
+        <div class="metric-val text-warning">{{ estimate.actual_extra_roti_issued }}</div>
+        <div class="text-muted mt-1" style="font-size:0.65rem;">
+          Rate: {{ estimate.roti_unit_price }} | Rec: {{ extra_roti_cost }}
+        </div>
+      </div>
+    </div>
+    <div class="col-3">
+      <div class="report-metric-card text-center">
+        <div class="metric-lbl">Extra Sweets Issued</div>
+        <div class="metric-val text-danger">{{ estimate.actual_extra_sweet_issued }}</div>
+        <div class="text-muted mt-1" style="font-size:0.65rem;">
+          Rate: {{ estimate.sweet_unit_price }} | Rec: {{ extra_sweet_cost }}
+        </div>
+      </div>
+    </div>
+    <div class="col-3">
+      <div class="report-metric-card text-center bg-primary text-white border-primary">
+        <div class="metric-lbl text-white-50">Token Unit Cost</div>
+        <div class="metric-val text-white">{{ estimate.price_per_token }}</div>
+        <div class="text-white-50 mt-1" style="font-size:0.65rem;">
+          Effective Net Rate
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Structured Financial Statement Table -->
+  <div class="d-flex justify-content-between align-items-center mb-1">
+    <div class="fw-bold text-dark small text-uppercase tracking-wider">Financial Statement & Unit Cost Calculation</div>
+    <div class="text-muted" style="font-size:0.65rem;">All values in system currency units</div>
+  </div>
+
+  <table class="table table-bordered align-middle mb-3 report-table">
+    <thead>
+      <tr>
+        <th style="width:50%;">Cost Breakdown Component</th>
+        <th class="text-center" style="width:15%;">Issued Qty</th>
+        <th class="text-end" style="width:15%;">Unit Rate</th>
+        <th class="text-end" style="width:20%;">Total Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>1. Total Daily Expense</strong></td>
+        <td class="text-center">—</td>
+        <td class="text-end">—</td>
+        <td class="text-end fw-bold">{{ estimate.total_expense }}</td>
+      </tr>
+      <tr>
+        <td class="ps-4 text-muted">Less: Extra Roti Recovery (<span class="fw-semibold">{{ estimate.get_roti_type_display }}</span>)</td>
+        <td class="text-center">{{ estimate.actual_extra_roti_issued }}</td>
+        <td class="text-end">{{ estimate.roti_unit_price }}</td>
+        <td class="text-end text-danger">- {{ extra_roti_cost }}</td>
+      </tr>
+      <tr>
+        <td class="ps-4 text-muted">Less: Extra Sweets Recovery (<span class="fw-semibold">{{ estimate.sweet.name|default:"None" }}</span>)</td>
+        <td class="text-center">{{ estimate.actual_extra_sweet_issued }}</td>
+        <td class="text-end">{{ estimate.sweet_unit_price }}</td>
+        <td class="text-end text-danger">- {{ extra_sweet_cost }}</td>
+      </tr>
+      <tr class="table-light">
+        <td><strong>2. Total Recoveries Subtotal</strong></td>
+        <td class="text-center">—</td>
+        <td class="text-end">—</td>
+        <td class="text-end fw-semibold text-danger">- {{ total_recoveries }}</td>
+      </tr>
+      <tr>
+        <td><strong>3. Subtotal Net Expense</strong></td>
+        <td class="text-center">—</td>
+        <td class="text-end">—</td>
+        <td class="text-end fw-bold">{{ net_subtotal }}</td>
+      </tr>
+      {% if estimate.adjustment_amount != 0 %}
+        <tr>
+          <td><strong>4. Adjustment Amount (+/-)</strong></td>
+          <td class="text-center">—</td>
+          <td class="text-end">—</td>
+          <td class="text-end fw-bold {% if estimate.adjustment_amount > 0 %}text-success{% else %}text-danger{% endif %}">
+            {% if estimate.adjustment_amount > 0 %}+{% endif %}{{ estimate.adjustment_amount }}
+          </td>
+        </tr>
+      {% endif %}
+      <tr class="table-secondary fw-bold">
+        <td colspan="3" class="text-end">Token Expense:</td>
+        <td class="text-end fs-6">{{ estimate.token_expense }}</td>
+      </tr>
+      <tr class="table-primary fw-bold">
+        <td colspan="3" class="text-end text-primary">Token Unit Cost:</td>
+        <td class="text-end text-primary fs-5">{{ estimate.price_per_token }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- 5. Operational Audit Notes & Key Highlights -->
+  <div class="p-3 border rounded-3 bg-light mb-3" style="font-size:0.72rem;">
+    <div class="fw-bold text-dark mb-1 text-uppercase">Daily Operational Summary Notes</div>
+    <div class="row g-2">
+      <div class="col-md-6">
+        <div>• <strong>Token Issuance:</strong> {{ estimate.actual_tokens_issued }} members served out of {{ estimate.planned_count }} planned estimates.</div>
+        <div>• <strong>Extra Items Recovery:</strong> Recovered {{ total_recoveries }} from extra rotis and sweets issued.</div>
+      </div>
+      <div class="col-md-6">
+        <div>• <strong>Effective Unit Cost:</strong> {{ estimate.price_per_token }} per meal token.</div>
+        <div>• <strong>Kitchen Control Status:</strong> {% if estimate.is_locked %}<span class="badge bg-secondary">Locked & Audited</span>{% else %}<span class="badge bg-success">Active / Open</span>{% endif %}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. Verification Signatures -->
+  <div class="row mt-4 pt-3 align-items-end">
+    <div class="col-4 text-center">
+      <div class="border-top border-secondary pt-1 text-muted" style="font-size:0.68rem;">
+        Prepared By (Cafeteria Manager)
+      </div>
+    </div>
+    <div class="col-4 text-center">
+      <div class="border-top border-secondary pt-1 text-muted" style="font-size:0.68rem;">
+        Audited By (Internal Committee)
+      </div>
+    </div>
+    <div class="col-4 text-end text-muted" style="font-size:0.65rem;">
+      <div>Approved By (Super Admin)</div>
+      <div>Page 1 of 1</div>
+    </div>
+  </div>
+
+  <!-- Document Footer -->
+  <div class="d-flex justify-content-between align-items-center border-top pt-2 mt-4 text-muted" style="font-size:0.62rem;">
+    <div>Generated on {% now "F d, Y - h:i A" %} | {{ site_name }}</div>
+    <div>Official Cafeteria Management System Document</div>
+  </div>
+
+</div>
+{% endblock %}

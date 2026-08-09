@@ -1,0 +1,62 @@
+/* Costing Dashboard Styling - Dark & Light Mode Theme Responsive */
+
+.costing-kpi-card {
+  background-color: var(--clr-surface);
+  border: 1px solid var(--clr-border);
+  color: var(--clr-text);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.costing-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.costing-section-card {
+  background-color: var(--clr-surface);
+  border: 1px solid var(--clr-border);
+  color: var(--clr-text);
+}
+
+.costing-card-header {
+  background-color: var(--clr-surface);
+  border-bottom: 1px solid var(--clr-border);
+  color: var(--clr-text);
+}
+
+.costing-stat-bg {
+  background-color: var(--clr-surface-2);
+  border: 1px solid var(--clr-border);
+  color: var(--clr-text);
+}
+
+.table-theme {
+  color: var(--clr-text);
+}
+
+.table-theme thead th {
+  background-color: var(--clr-surface-2);
+  color: var(--clr-text-muted);
+  border-bottom: 1px solid var(--clr-border);
+}
+
+.table-theme tbody td {
+  border-bottom: 1px solid var(--clr-border);
+  color: var(--clr-text);
+}
+
+[data-theme="dark"] .card-title-text {
+  color: #f8fafc !important;
+}
+
+[data-theme="light"] .card-title-text {
+  color: #0f172a !important;
+}
+
+[data-theme="dark"] .theme-text-primary {
+  color: var(--clr-primary) !important;
+}
+
+[data-theme="light"] .theme-text-primary {
+  color: #0284c7 !important;
+}

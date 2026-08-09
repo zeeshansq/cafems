@@ -1,0 +1,298 @@
+{% load static %}
+<nav class="navbar navbar-expand-lg app-navbar shadow-sm sticky-top" id="appNavbar">
+  <div class="container-fluid px-3 px-lg-4">
+
+    {# ── 1. Brand Logo & Name ───────────────────────────────────────── #}
+    <a class="navbar-brand d-flex align-items-center gap-2 me-4" href="{% url 'core:dashboard' %}" id="navBrandLink">
+      <div class="brand-logo-icon" id="navBrandLogo">
+        <i class="bi bi-cup-hot-fill text-white"></i>
+      </div>
+      <div>
+        <div class="fw-bold lh-1 brand-title-text">
+          {% if "127.0.0.1" in site_name or "localhost" in site_name or not site_name %}CafeMS{% else %}{{ site_name }}{% endif %}
+        </div>
+        <span class="badge bg-primary-subtle text-primary px-2 py-0 mt-1" style="font-size:0.65rem; font-weight:600;">Cafeteria System</span>
+      </div>
+    </a>
+
+    {# ── 2. Mobile Hamburger Toggle ────────────────────────────────── #}
+    <button class="navbar-toggler border-0 text-muted" type="button" data-bs-toggle="collapse" data-bs-target="#topNavMenu" aria-controls="topNavMenu" aria-expanded="false" aria-label="Toggle navigation">
+      <i class="bi bi-list fs-2"></i>
+    </button>
+
+    {# ── 3. Navbar Navigation Items ─────────────────────────────────── #}
+    <div class="collapse navbar-collapse" id="topNavMenu">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0 gap-1 gap-lg-2">
+
+        {# 1. Dashboard Link (All Roles) #}
+        <li class="nav-item">
+          <a class="nav-link top-nav-link {% if request.resolver_match.app_name == 'core' and request.resolver_match.url_name in 'dashboard,admin_dashboard,employee_dashboard' %}active{% endif %}" href="{% url 'core:dashboard' %}" id="topnavDashboard">
+            <i class="bi bi-speedometer2 me-1 text-warning"></i>Dashboard
+          </a>
+        </li>
+
+        {# 2. Daily Operations Dropdown (Staff / Admin Roles) #}
+        {% if request.user.can_issue_tokens or request.user.can_access_pos or request.user.can_acknowledge_requests %}
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle top-nav-link {% if request.resolver_match.app_name in 'tokens,pos' and 'reports' not in request.path or request.resolver_match.app_name == 'requests_app' and 'my' not in request.path %}active{% endif %}" href="#" id="topnavOpsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-lightning-charge-fill me-1 text-success"></i>Counter Operations
+          </a>
+          <ul class="dropdown-menu shadow-lg border mt-2">
+            {% if request.user.can_issue_tokens %}
+            <li>
+              <a class="dropdown-item py-2" href="{% url 'tokens:issue' %}">
+                <i class="bi bi-ticket-perforated-fill me-2 text-warning"></i>Issue Lunch Tokens
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item py-2" href="{% url 'tokens:employee_history' %}">
+                <i class="bi bi-clock-history me-2 text-warning"></i>Employee Token History
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item py-2" href="{% url 'tokens:daily_report' %}">
+                <i class="bi bi-journal-text me-2 text-primary"></i>Daily Token Closing Log
+              </a>
+            </li>
+            {% endif %}
+            {% if request.user.can_access_pos %}
+            <li>
+              <a class="dropdown-item py-2" href="{% url 'pos:index' %}">
+                <i class="bi bi-cart3 me-2 text-success"></i>Tea & Snack POS Counter
+              </a>
+            </li>
+            {% endif %}
+            {% if request.user.can_acknowledge_requests %}
+            <li>
+              <a class="dropdown-item py-2" href="{% url 'requests_app:list' %}">
+                <i class="bi bi-calendar-check-fill me-2 text-info"></i>Member Token Requests
+              </a>
+            </li>
+            {% endif %}
+          </ul>
+        </li>
+        {% endif %}
+
+        {# 3. Cafeteria & Menu Management Dropdown (Admin / Staff Roles) #}
+        {% if request.user.can_manage_menu %}
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle top-nav-link {% if request.resolver_match.app_name == 'menu' and request.resolver_match.url_name != 'monthly' %}active{% endif %}" href="#" id="topnavMenuDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-egg-fried me-1 text-danger"></i>Menu & Costing
+          </a>
+          <ul class="dropdown-menu shadow-lg border mt-2">
+            <li>
+              <a class="dropdown-item py-2" href="{% url 'menu:costing_dashboard' %}">
+                <i class="bi bi-pie-chart-fill me-2 text-warning"></i>Lunch Costing Dashboard
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item py-2" href="{% url 'menu:daily_estimate' %}">
+                <i class="bi bi-journal-plus me-2 text-primary"></i>Daily Menu & Costing Log
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item py-2" href="{% url 'menu:setup_index' %}">
+                <i class="bi bi-sliders me-2 text-success"></i>Cafeteria Setup (Cooks, Sweets, Prices)
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item py-2" href="{% url 'menu:lunch_plan' %}">
+                <i class="bi bi-calendar3 me-2 text-info"></i>Weekly Menu Schedule
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item py-2" href="{% url 'menu:index' %}">
+                <i class="bi bi-journal-richtext me-2 text-secondary"></i>POS Item Catalog
+              </a>
+            </li>
+          </ul>
+        </li>
+        {% endif %}
+
+        {# 4. Administration & Finance Dropdown (Admin / Manager Roles) #}
+        {% if request.user.can_manage_employees or request.user.can_generate_bills %}
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle top-nav-link {% if request.resolver_match.app_name in 'employees,billing' and 'my' not in request.path and 'reports' not in request.path %}active{% endif %}" href="#" id="topnavMgmtDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-briefcase-fill me-1 text-primary"></i>Administration
+          </a>
+          <ul class="dropdown-menu shadow-lg border mt-2">
+            {% if request.user.can_manage_employees %}
+            <li>
+              <a class="dropdown-item py-2" href="{% url 'employees:list' %}">
+                <i class="bi bi-people-fill me-2 text-primary"></i>Employees Roster
+              </a>
+            </li>
+            {% endif %}
+            {% if request.user.can_generate_bills or request.user.can_approve_bills %}
+            <li>
+              <a class="dropdown-item py-2" href="{% url 'billing:list' %}">
+                <i class="bi bi-receipt-cutoff me-2 text-danger"></i>Monthly Billing Invoices
+              </a>
+            </li>
+            {% endif %}
+          </ul>
+        </li>
+        {% endif %}
+
+        {# 5. Dedicated Admin Reports Dropdown #}
+        {% if request.user.can_view_reports %}
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle top-nav-link {% if request.resolver_match.app_name == 'reports' and 'my' not in request.path %}active{% endif %}" href="#" id="topnavReportsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-bar-chart-line-fill me-1 text-warning"></i>Reports
+          </a>
+          <ul class="dropdown-menu shadow-lg border mt-2" style="min-width: 260px;">
+            <li>
+              <a class="dropdown-item py-2 fw-bold text-primary" href="{% url 'reports:index' %}">
+                <i class="bi bi-grid-fill me-2 text-primary"></i>Reports Hub (All 7 Reports)
+              </a>
+            </li>
+            <li><hr class="dropdown-divider my-1"></li>
+            <li>
+              <a class="dropdown-item py-2" href="{% url 'reports:monthly_tokens' %}">
+                <i class="bi bi-ticket-perforated-fill me-2 text-warning"></i>Monthly Token Summary
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item py-2" href="{% url 'reports:pos_collection' %}">
+                <i class="bi bi-cart-check-fill me-2 text-success"></i>Misc Charges & POS Collection
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item py-2" href="{% url 'reports:employee_issuance' %}">
+                <i class="bi bi-person-lines-fill me-2 text-primary"></i>Employee Issuance Profiles
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item py-2" href="{% url 'reports:employee_deposits' %}">
+                <i class="bi bi-piggy-bank-fill me-2 text-info"></i>Employee Security Deposits
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item py-2" href="{% url 'reports:issuance_requests' %}">
+                <i class="bi bi-calendar-plus-fill me-2 text-success"></i>Token Issuance Requests
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item py-2" href="{% url 'reports:closure_requests' %}">
+                <i class="bi bi-calendar-minus-fill me-2 text-danger"></i>Token Closure Requests
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item py-2" href="{% url 'reports:billing' %}">
+                <i class="bi bi-receipt-cutoff me-2 text-secondary"></i>Billing & Invoices Report
+              </a>
+            </li>
+          </ul>
+        </li>
+        {% endif %}
+
+        {# 6. My Personal Reports (Employee Members Only) #}
+        {% if request.user.is_employee_role %}
+        <li class="nav-item">
+          <a class="nav-link top-nav-link {% if request.resolver_match.app_name == 'reports' and 'my' in request.path %}active{% endif %}" href="{% url 'reports:my_reports_index' %}" id="topnavMyReports">
+            <i class="bi bi-file-earmark-person-fill me-1 text-info"></i>My Reports
+          </a>
+        </li>
+        {% endif %}
+
+        {# 7. My Dining Dropdown (Employee Members) #}
+        {% if request.user.is_employee_role %}
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle top-nav-link {% if request.resolver_match.app_name != 'reports' and 'my' in request.path or request.resolver_match.url_name == 'monthly' %}active{% endif %}" href="#" id="topnavEmpDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-person-badge-fill me-1 text-info"></i>My Dining
+          </a>
+          <ul class="dropdown-menu shadow-lg border mt-2">
+            <li>
+              <a class="dropdown-item py-2" href="{% url 'menu:monthly' %}">
+                <i class="bi bi-calendar-event me-2 text-warning"></i>Monthly Menu Schedule
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item py-2" href="{% url 'requests_app:my_requests' %}">
+                <i class="bi bi-calendar-plus me-2 text-success"></i>My Requests
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item py-2" href="{% url 'billing:my_bills' %}">
+                <i class="bi bi-receipt me-2 text-info"></i>My Monthly Bills
+              </a>
+            </li>
+          </ul>
+        </li>
+        {% endif %}
+
+        {# 8. Super Admin Tenant Control Link #}
+        {% if request.user.is_super_admin %}
+        <li class="nav-item">
+          <a class="nav-link top-nav-link {% if request.resolver_match.app_name == 'tenants' %}active{% endif %}" href="{% url 'tenants:dashboard' %}" id="topnavTenants">
+            <i class="bi bi-building me-1 text-primary"></i>Tenant Control
+          </a>
+        </li>
+        {% endif %}
+
+      </ul>
+
+      {# ── 4. Right Controls (Clock, Notif, Dark Mode, Profile) ────────── #}
+      <div class="d-flex align-items-center gap-3 mt-3 mt-lg-0">
+
+        {# Live PKT Clock #}
+        <div class="d-none d-xl-block text-muted small" id="navClock">
+          <i class="bi bi-clock me-1 text-warning"></i>
+          <span id="liveTimeStr">{% now "g:i A" %} PKT</span>
+        </div>
+
+        {# Notifications Bell #}
+        <a href="{% url 'notifications:list' %}" class="position-relative text-muted p-2" id="navNotifBell" title="Notifications">
+          <i class="bi bi-bell fs-5"></i>
+          <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle d-none" id="navNotifDot">
+            <span class="visually-hidden">Unread</span>
+          </span>
+        </a>
+
+        {# Dark Mode Toggle #}
+        <button class="btn btn-icon btn-sm btn-outline-secondary border-0" id="darkModeToggle" title="Toggle Theme">
+          <i class="bi bi-moon-stars fs-5" id="darkModeIcon"></i>
+        </button>
+
+        {# User Profile Dropdown #}
+        <div class="dropdown" id="navUserDropdown">
+          <button class="btn p-0 border-0 d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="btnUserMenu">
+            <div class="user-avatar-pill" id="navUserAvatar">
+              {% if request.user.avatar %}
+                <img src="{{ request.user.avatar.url }}" alt="Avatar" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">
+              {% else %}
+                {{ request.user.display_name|slice:":1"|upper }}
+              {% endif %}
+            </div>
+            <div class="text-start d-none d-sm-block" style="line-height:1.2;">
+              <div class="fw-bold small">{{ request.user.display_name }}</div>
+              <div class="text-muted" style="font-size:0.72rem;">{{ request.user.get_role_display }}</div>
+            </div>
+            <i class="bi bi-chevron-down text-muted small ms-1"></i>
+          </button>
+
+          <ul class="dropdown-menu dropdown-menu-end shadow-lg border mt-2">
+            <li class="px-3 py-2 border-bottom">
+              <div class="fw-bold">{{ request.user.display_name }}</div>
+              <div class="text-muted small">{{ request.user.email }}</div>
+            </li>
+            <li>
+              <a class="dropdown-item py-2" href="{% url 'accounts:profile' %}">
+                <i class="bi bi-person me-2 text-primary"></i>My Profile
+              </a>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+              <a class="dropdown-item py-2 text-danger" href="{% url 'accounts:logout' %}">
+                <i class="bi bi-box-arrow-right me-2"></i>Sign Out
+              </a>
+            </li>
+          </ul>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+</nav>

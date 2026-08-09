@@ -1,0 +1,242 @@
+{% extends "base_minimal.html" %}
+{% load static %}
+
+{% block title %}Period Costing Summary Report (Landscape) | {{ tenant.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .a4-landscape-container {
+    width: 297mm;
+    min-height: 210mm;
+    box-sizing: border-box;
+  }
+
+  .compact-report-table {
+    table-layout: fixed;
+    width: 100%;
+  }
+
+  .compact-report-table th, 
+  .compact-report-table td {
+    padding: 0.18rem 0.3rem !important;
+    font-size: 0.72rem !important;
+    line-height: 1.15 !important;
+    vertical-align: middle !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .compact-stat-card {
+    padding: 0.3rem 0.45rem !important;
+  }
+
+  .compact-stat-card .stat-val {
+    font-size: 0.95rem !important;
+    font-weight: 700;
+  }
+
+  .compact-stat-card .stat-lbl {
+    font-size: 0.62rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  @media print {
+    @page {
+      size: A4 landscape;
+      margin: 6mm 6mm 6mm 6mm;
+    }
+    body {
+      background: #fff !important;
+      font-size: 9pt;
+    }
+    .print-controls-bar {
+      display: none !important;
+    }
+    .a4-landscape-container {
+      width: 100% !important;
+      min-height: auto !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      box-shadow: none !important;
+    }
+    .no-print {
+      display: none !important;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="print-controls-bar d-print-none bg-dark text-white p-2 shadow-sm sticky-top">
+  <div class="container-fluid d-flex justify-content-between align-items-center">
+    <div class="fw-bold small">
+      <i class="bi bi-file-earmark-pdf me-2 text-warning"></i>Period Costing Landscape Summary Report (A4 Printable)
+    </div>
+    <div class="d-flex gap-2">
+      <button onclick="window.print()" class="btn btn-warning btn-sm fw-bold text-dark px-3">
+        <i class="bi bi-printer me-1"></i> Print Landscape Report
+      </button>
+      <button onclick="window.close()" class="btn btn-outline-light btn-sm px-3">
+        <i class="bi bi-x-lg me-1"></i> Close
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="a4-landscape-container my-3 mx-auto bg-white shadow-lg p-4">
+
+  <!-- Header with Organization Logo & Title -->
+  <div class="d-flex justify-content-between align-items-center border-bottom border-2 border-primary pb-2 mb-2">
+    <div class="d-flex align-items-center gap-2">
+      {% if tenant.logo_url %}
+        <img src="{{ tenant.logo_url }}" alt="{{ tenant.title }}" style="max-height: 40px; max-width: 100px; object-fit: contain;">
+      {% else %}
+        <div class="bg-primary text-white rounded-2 d-flex align-items-center justify-content-center fw-bold fs-5" style="width: 38px; height: 38px;">
+          {{ tenant.short_title|default:"CMS"|slice:":3" }}
+        </div>
+      {% endif %}
+      <div>
+        <h1 class="h5 mb-0 fw-bold text-dark lh-1">{{ tenant.title }}</h1>
+        <div class="text-secondary fw-semibold" style="font-size:0.68rem;">{{ tenant.short_title }} — Cafeteria Costing & Menu Management System</div>
+      </div>
+    </div>
+    <div class="text-end">
+      <span class="badge bg-dark text-uppercase px-2 py-1" style="font-size:0.65rem;">Period Costing Summary Report</span>
+      <div class="fw-bold text-dark mt-1" style="font-size:0.75rem;">
+        Period: {{ start_date }} — {{ end_date }}
+      </div>
+      <div class="text-muted" style="font-size:0.65rem;">Generated: {% now "Y-m-d H:i" %}</div>
+    </div>
+  </div>
+
+  <!-- Aggregate KPI Cards for Selected Period -->
+  <div class="row g-2 mb-2">
+    <div class="col">
+      <div class="border rounded-2 compact-stat-card text-center bg-light">
+        <div class="text-muted stat-lbl">Total Days</div>
+        <div class="stat-val text-dark mt-1">{{ estimates.count }}</div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="border rounded-2 compact-stat-card text-center bg-light">
+        <div class="text-muted stat-lbl">Total Tokens</div>
+        <div class="stat-val text-primary mt-1">{{ tot_tokens }}</div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="border rounded-2 compact-stat-card text-center bg-light">
+        <div class="text-muted stat-lbl">Ex. Roti Issued</div>
+        <div class="stat-val text-warning mt-1">{{ tot_extra_roti_qty }}</div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="border rounded-2 compact-stat-card text-center bg-light">
+        <div class="text-muted stat-lbl">Ex. Sweets Issued</div>
+        <div class="stat-val text-danger mt-1">{{ tot_extra_sweet_qty }}</div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="border rounded-2 compact-stat-card text-center bg-light">
+        <div class="text-muted stat-lbl">Total Expenses</div>
+        <div class="stat-val text-dark mt-1">{{ tot_expense }}</div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="border rounded-2 compact-stat-card text-center bg-light">
+        <div class="text-muted stat-lbl">Token Expense</div>
+        <div class="stat-val text-dark mt-1">{{ tot_token_exp }}</div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="border rounded-2 compact-stat-card text-center bg-primary text-white">
+        <div class="text-white-50 stat-lbl">Avg Unit Cost</div>
+        <div class="stat-val mt-1">{{ avg_unit_cost }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Period Entry Table -->
+  <div class="d-flex justify-content-between align-items-center mb-1">
+    <div class="fw-bold text-dark small text-uppercase tracking-wider">Detailed Daily Menu & Costing Ledger</div>
+    <div class="text-muted" style="font-size:0.65rem;">Showing {{ estimates.count }} daily entries</div>
+  </div>
+
+  <table class="table table-bordered table-striped align-middle mb-2 compact-report-table">
+    <thead class="bg-light text-dark fw-bold text-uppercase">
+      <tr>
+        <th style="width:8%;">Date</th>
+        <th style="width:17%;">Dish Name</th>
+        <th style="width:11%;">Cook</th>
+        <th style="width:9%;">Roti Type</th>
+        <th class="text-center" style="width:6%;">Ex. Roti</th>
+        <th class="text-end" style="width:6.5%;">Roti Price</th>
+        <th style="width:9.5%;">Sweet</th>
+        <th class="text-center" style="width:6.5%;">Ex. Sweet</th>
+        <th class="text-end" style="width:6.5%;">Sweet Price</th>
+        <th class="text-center" style="width:5.5%;">Tokens</th>
+        <th class="text-end" style="width:7.5%;">Total Exp</th>
+        <th class="text-end" style="width:7.5%;">Token Exp</th>
+        <th class="text-end" style="width:6.5%;">Unit Cost</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for entry in estimates %}
+        <tr>
+          <td class="fw-semibold">{{ entry.date|date:"Y-m-d" }}</td>
+          <td title="{{ entry.dish_name }}">{{ entry.dish_name|default:"Standard Lunch" }}</td>
+          <td title="{{ entry.cook.name }}">{{ entry.cook.name|default:"—" }}</td>
+          <td>{{ entry.get_roti_type_display }}</td>
+          <td class="text-center fw-bold text-warning">{{ entry.actual_extra_roti_issued }}</td>
+          <td class="text-end">{{ entry.roti_unit_price }}</td>
+          <td>{{ entry.sweet.name|default:"N/A" }}</td>
+          <td class="text-center fw-bold text-danger">{{ entry.actual_extra_sweet_issued }}</td>
+          <td class="text-end">{% if entry.sweet %}{{ entry.sweet_unit_price }}{% else %}—{% endif %}</td>
+          <td class="text-center fw-bold text-primary">{{ entry.actual_tokens_issued }}</td>
+          <td class="text-end">{{ entry.total_expense }}</td>
+          <td class="text-end fw-semibold">{{ entry.token_expense }}</td>
+          <td class="text-end fw-bold text-success">{{ entry.price_per_token }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="13" class="text-center py-3 text-muted">No entries found for the selected date range.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot class="table-secondary fw-bold">
+      <tr>
+        <td colspan="4" class="text-end">Period Totals:</td>
+        <td class="text-center text-warning">{{ tot_extra_roti_qty }}</td>
+        <td class="text-end">—</td>
+        <td class="text-end">—</td>
+        <td class="text-center text-danger">{{ tot_extra_sweet_qty }}</td>
+        <td class="text-end">—</td>
+        <td class="text-center text-primary">{{ tot_tokens }}</td>
+        <td class="text-end">{{ tot_expense }}</td>
+        <td class="text-end">{{ tot_token_exp }}</td>
+        <td class="text-end">—</td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <!-- Signatures / Footer in Compact Grid -->
+  <div class="row mt-3 pt-2 align-items-end">
+    <div class="col-4 text-center">
+      <div class="border-top border-secondary pt-1 text-muted" style="font-size:0.65rem;">
+        Prepared By (Cafeteria Manager)
+      </div>
+    </div>
+    <div class="col-4 text-center">
+      <div class="border-top border-secondary pt-1 text-muted" style="font-size:0.65rem;">
+        Verified By (Auditor / Committee)
+      </div>
+    </div>
+    <div class="col-4 text-end text-muted" style="font-size:0.62rem;">
+      <div>Generated: {% now "Y-m-d h:i A" %}</div>
+      <div>Page 1 of 1</div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

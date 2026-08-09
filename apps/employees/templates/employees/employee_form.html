@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ action }} Employee | {{ site_name }}{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'employees/css/employee_form.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">{{ action }} Employee</h1>
+    <p class="page-header-subtitle">{% if action == "Create" %}Add a new employee profile to the cafeteria roster.{% else %}Update employee member profile and status.{% endif %}</p>
+  </div>
+  <a href="{% url 'employees:list' %}" class="btn btn-outline-secondary" id="btnCancel">
+    <i class="bi bi-arrow-left me-1"></i>Back to Roster
+  </a>
+</div>
+
+<div class="card" id="cardEmployeeForm">
+  <div class="card-body">
+    <form method="post" enctype="multipart/form-data" id="employeeForm" data-submit-once>
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger" role="alert">
+          {{ form.non_field_errors }}
+        </div>
+      {% endif %}
+
+      <h5 class="mb-3 text-primary"><i class="bi bi-person-badge me-2"></i>Personal & Identification Details</h5>
+      <div class="row g-3 mb-4">
+        <div class="col-md-5">
+          <label for="{{ form.full_name.id_for_label }}" class="form-label">Full Name *</label>
+          {{ form.full_name }}
+          {% if form.full_name.errors %}<div class="text-danger small">{{ form.full_name.errors }}</div>{% endif %}
+        </div>
+        <div class="col-md-4">
+          <label for="{{ form.photo.id_for_label }}" class="form-label">Employee Photo</label>
+          {{ form.photo }}
+          {% if form.photo.errors %}<div class="text-danger small">{{ form.photo.errors }}</div>{% endif %}
+        </div>
+        <div class="col-md-3">
+          <label for="{{ form.pno.id_for_label }}" class="form-label">P-No *</label>
+          {{ form.pno }}
+          {% if form.pno.errors %}<div class="text-danger small">{{ form.pno.errors }}</div>{% endif %}
+        </div>
+        <div class="col-md-3">
+          <label for="{{ form.gender.id_for_label }}" class="form-label">Gender</label>
+          {{ form.gender }}
+          {% if form.gender.errors %}<div class="text-danger small">{{ form.gender.errors }}</div>{% endif %}
+        </div>
+        <div class="col-md-4">
+          <label for="{{ form.register_number.id_for_label }}" class="form-label">Register Number</label>
+          {{ form.register_number }}
+        </div>
+        <div class="col-md-4">
+          <label for="{{ form.system_id.id_for_label }}" class="form-label">System ID</label>
+          {{ form.system_id }}
+        </div>
+        <div class="col-md-4">
+          <label for="{{ form.date_joined.id_for_label }}" class="form-label">Date Joined</label>
+          {{ form.date_joined }}
+        </div>
+      </div>
+
+      <hr class="my-4">
+
+      <h5 class="mb-3 text-primary"><i class="bi bi-building me-2"></i>Department & Role</h5>
+      <div class="row g-3 mb-4">
+        <div class="col-md-4">
+          <label for="{{ form.department.id_for_label }}" class="form-label">Department</label>
+          {{ form.department }}
+        </div>
+        <div class="col-md-4">
+          <label for="{{ form.designation.id_for_label }}" class="form-label">Designation</label>
+          {{ form.designation }}
+        </div>
+        <div class="col-md-4">
+          <label for="{{ form.category.id_for_label }}" class="form-label">Category</label>
+          {{ form.category }}
+        </div>
+      </div>
+
+      <hr class="my-4">
+
+      <h5 class="mb-3 text-primary"><i class="bi bi-card-checklist me-2"></i>Membership & Security Deposit</h5>
+      <div class="row g-3 mb-4">
+        <div class="col-md-4">
+          <label for="{{ form.membership_type.id_for_label }}" class="form-label">Membership Type</label>
+          {{ form.membership_type }}
+        </div>
+        <div class="col-md-4">
+          <label for="{{ form.security_deposit_paid.id_for_label }}" class="form-label">Deposit Paid (PKR)</label>
+          {{ form.security_deposit_paid }}
+        </div>
+        <div class="col-md-4">
+          <label for="{{ form.security_deposit_pending.id_for_label }}" class="form-label">Deposit Pending (PKR)</label>
+          {{ form.security_deposit_pending }}
+        </div>
+        <div class="col-md-6 d-flex align-items-center gap-4 mt-3">
+          <div class="form-check">
+            {{ form.membership_status }}
+            <label class="form-check-label" for="{{ form.membership_status.id_for_label }}">Active Membership</label>
+          </div>
+          <div class="form-check">
+            {{ form.is_active }}
+            <label class="form-check-label" for="{{ form.is_active.id_for_label }}">Active Employee Account</label>
+          </div>
+        </div>
+      </div>
+
+      <hr class="my-4">
+
+      <h5 class="mb-3 text-primary"><i class="bi bi-telephone me-2"></i>Contact Information</h5>
+      <div class="row g-3 mb-4">
+        <div class="col-md-4">
+          <label for="{{ form.email.id_for_label }}" class="form-label">Email Address</label>
+          {{ form.email }}
+        </div>
+        <div class="col-md-4">
+          <label for="{{ form.mobile.id_for_label }}" class="form-label">Mobile Number</label>
+          {{ form.mobile }}
+        </div>
+        <div class="col-md-4">
+          <label for="{{ form.telephone_extension.id_for_label }}" class="form-label">Ext. Number</label>
+          {{ form.telephone_extension }}
+        </div>
+        <div class="col-12">
+          <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
+          {{ form.notes }}
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-end gap-2">
+        <a href="{% url 'employees:list' %}" class="btn btn-outline-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary" id="btnSaveEmployee">
+          <i class="bi bi-check-circle me-1"></i>Save Employee Profile
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'employees/js/employee_form.js' %}"></script>
+{% endblock %}

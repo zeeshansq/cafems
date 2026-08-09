@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Daily Menu Entries & Costing | {{ site_name }}{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'menu/css/daily_estimate.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+
+  <!-- Header & Actions -->
+  <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-3">
+    <div>
+      <h2 class="h3 mb-0 fw-bold card-title-text">
+        <i class="bi bi-journal-text theme-text-primary me-2"></i>Daily Menu Entries & Costing List
+      </h2>
+      <p class="text-muted mb-0 small">Operational log of daily meal preparation, cook assignments, expenses, and unit cost calculations.</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <a href="{% url 'menu:daily_estimate_create' %}" class="btn btn-primary fw-bold shadow-sm">
+        <i class="bi bi-plus-lg me-1"></i> Add Daily Menu Entry
+      </a>
+      <a href="{% url 'menu:costing_dashboard' %}" class="btn btn-outline-primary fw-bold">
+        <i class="bi bi-speedometer2 me-1"></i> Dashboard
+      </a>
+      <button type="button" class="btn btn-outline-secondary fw-bold" id="btnPrintRangeReport" data-url="{% url 'menu:daily_estimate_range_report' %}?start_date={{ start_date }}&end_date={{ end_date }}&cook={{ selected_cook }}">
+        <i class="bi bi-printer me-1"></i> Print Summary Report for Range
+      </button>
+    </div>
+  </div>
+
+  <!-- Filter Card -->
+  <div class="card filter-card-theme border-0 shadow-sm rounded-3 mb-4">
+    <div class="card-body p-3">
+      <form method="get" class="row g-3 align-items-end">
+
+        <div class="col-md-3">
+          <label class="form-label small fw-bold text-muted mb-1">Start Date</label>
+          <input type="date" name="start_date" class="form-control form-control-sm form-control-theme" value="{{ start_date }}">
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label small fw-bold text-muted mb-1">End Date</label>
+          <input type="date" name="end_date" class="form-control form-control-sm form-control-theme" value="{{ end_date }}">
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label small fw-bold text-muted mb-1">Cook / Chef</label>
+          <select name="cook" class="form-select form-select-sm form-select-theme">
+            <option value="">All Cooks</option>
+            {% for c in cooks %}
+              <option value="{{ c.id }}" {% if selected_cook == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label small fw-bold text-muted mb-1">Search Dish</label>
+          <div class="input-group input-group-sm">
+            <input type="text" name="q" class="form-control form-control-theme" placeholder="Search dish..." value="{{ search_q }}">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i></button>
+            {% if start_date or end_date or selected_cook or search_q %}
+              <a href="{% url 'menu:daily_estimate' %}" class="btn btn-outline-secondary" title="Clear Filters"><i class="bi bi-x-lg"></i></a>
+            {% endif %}
+          </div>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- Summary Statistics Header Bar -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="card summary-stat-card border-0 shadow-sm rounded-3 p-3 border-start border-primary border-4">
+        <div class="text-muted small text-uppercase fw-semibold">Filtered Entries</div>
+        <div class="h4 mb-0 fw-bold card-title-text mt-1">{{ page_obj.paginator.count }} days</div>
+      </div>
+    </div>
+
+    <div class="col-6 col-md-3">
+      <div class="card summary-stat-card border-0 shadow-sm rounded-3 p-3 border-start border-info border-4">
+        <div class="text-muted small text-uppercase fw-semibold">Total Tokens Issued</div>
+        <div class="h4 mb-0 fw-bold text-info mt-1">{{ summary_total_tokens }}</div>
+      </div>
+    </div>
+
+    <div class="col-6 col-md-3">
+      <div class="card summary-stat-card border-0 shadow-sm rounded-3 p-3 border-start border-warning border-4">
+        <div class="text-muted small text-uppercase fw-semibold">Net Token Expense</div>
+        <div class="h4 mb-0 fw-bold card-title-text mt-1">{{ summary_net_expense }}</div>
+      </div>
+    </div>
+
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm rounded-3 bg-primary text-white p-3">
+        <div class="text-white-50 small text-uppercase fw-semibold">Average Unit Cost</div>
+        <div class="h3 mb-0 fw-bold mt-1">{{ summary_avg_unit_cost }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Entries Table -->
+  <div class="card entries-table-card border-0 shadow-sm rounded-3 overflow-hidden">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 entries-table">
+        <thead>
+          <tr>
+            <th class="ps-4">Date</th>
+            <th>Dish & Cook</th>
+            <th>Roti / Sweet Option</th>
+            <th class="text-center">Tokens (Est / Actual)</th>
+            <th class="text-center">Extra Roti</th>
+            <th class="text-center">Extra Sweet</th>
+            <th class="text-end">Total Expense</th>
+            <th class="text-end">Token Unit Cost</th>
+            <th class="text-center pe-4">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for est in estimates %}
+            <tr>
+              <td class="ps-4 fw-bold card-title-text">
+                {{ est.date }}
+              </td>
+
+              <td>
+                <div class="fw-bold card-title-text">{{ est.dish_name|default:"General Lunch" }}</div>
+                {% if est.cook %}
+                  <div class="small text-muted"><i class="bi bi-person-badge me-1"></i>Cook: {{ est.cook.name }}</div>
+                {% else %}
+                  <div class="small text-muted"><i class="bi bi-person-dash me-1"></i>Cook: Unassigned</div>
+                {% endif %}
+              </td>
+
+              <td>
+                <div><span class="badge badge-roti-type me-1">{{ est.roti_price_obj.name|default:est.get_roti_type_display }}</span></div>
+                {% if est.sweet %}
+                  <div class="small text-muted"><i class="bi bi-cup-straw text-danger me-1"></i>{{ est.sweet.name }} ({{ est.sweet_unit_price }})</div>
+                {% else %}
+                  <div class="small text-muted">No Sweet</div>
+                {% endif %}
+              </td>
+
+              <td class="text-center">
+                <span class="fw-bold text-primary">{{ est.actual_tokens_issued }}</span>
+                <span class="text-muted small"> / {{ est.planned_count }}</span>
+              </td>
+
+              <td class="text-center">
+                <span class="fw-bold">{{ est.actual_extra_roti_issued }}</span>
+                <div class="small text-muted">@ {{ est.roti_unit_price }}</div>
+              </td>
+
+              <td class="text-center">
+                <span class="fw-bold">{{ est.actual_extra_sweet_issued }}</span>
+                <div class="small text-muted">@ {{ est.sweet_unit_price }}</div>
+              </td>
+
+              <td class="text-end">
+                <div class="fw-bold card-title-text">{{ est.total_expense }}</div>
+                {% if est.adjustment_amount != 0 %}
+                  <div class="small text-muted">Adj: {% if est.adjustment_amount > 0 %}+{% endif %}{{ est.adjustment_amount }}</div>
+                {% endif %}
+              </td>
+
+              <td class="text-end">
+                <span class="badge bg-success fs-6 px-3 py-2">{{ est.price_per_token }}</span>
+              </td>
+
+              <td class="text-center pe-4">
+                <div class="btn-group btn-group-sm">
+                  <a href="{% url 'menu:daily_estimate_update' est.pk %}" class="btn btn-outline-primary" title="Edit Entry">
+                    <i class="bi bi-pencil"></i>
+                  </a>
+                  <form method="post" action="{% url 'menu:daily_estimate_toggle_lock' est.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn {% if est.is_locked %}btn-secondary{% else %}btn-outline-secondary{% endif %}" title="{% if est.is_locked %}Kitchen Status: Locked & Audited (Click to Unlock){% else %}Kitchen Status: Open (Click to Lock & Audit){% endif %}">
+                      <i class="bi {% if est.is_locked %}bi-lock-fill{% else %}bi-unlock{% endif %}"></i>
+                    </button>
+                  </form>
+                  <a href="{% url 'menu:daily_estimate_report' est.pk %}" class="btn btn-outline-secondary" title="Print A4 Summary Report" target="_blank">
+                    <i class="bi bi-printer"></i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="9" class="text-center py-5 text-muted">
+                <i class="bi bi-journal-x fs-1 d-block mb-2 text-secondary"></i>
+                No daily menu entries found for the selected criteria.
+                <div class="mt-2">
+                  <a href="{% url 'menu:daily_estimate_create' %}" class="btn btn-sm btn-primary">Create Today's Entry</a>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+      <div class="card-footer bg-transparent border-top py-3 d-flex justify-content-between align-items-center">
+        <div class="small text-muted">
+          Showing page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </div>
+        <ul class="pagination pagination-sm mb-0">
+          {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&start_date={{ start_date }}&end_date={{ end_date }}&cook={{ selected_cook }}&q={{ search_q }}">Previous</a></li>
+          {% endif %}
+          
+          <li class="page-item active"><span class="page-link">{{ page_obj.number }}</span></li>
+          
+          {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&start_date={{ start_date }}&end_date={{ end_date }}&cook={{ selected_cook }}&q={{ search_q }}">Next</a></li>
+          {% endif %}
+        </ul>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'menu/js/daily_estimate.js' %}"></script>
+{% endblock %}

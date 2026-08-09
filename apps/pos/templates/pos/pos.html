@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Tea & Snack POS Terminal | {{ site_name }}{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'pos/css/pos.css' %}">
+{% endblock %}
+
+{% block content %}
+{{ employees_json|json_script:"pos-employees-data" }}
+
+<div x-data="posCart()" class="row g-3" id="posApp">
+
+  {# ── Left Column: Categories, Menu Search & Items Grid (7 cols) ──── #}
+  <div class="col-lg-7 col-xl-7">
+    
+    {# 1. Top Header Toolbar & Daily Revenue Summary #}
+    <div class="card mb-3 shadow-sm" id="cardPosFilter">
+      <div class="card-body py-2.5 px-3">
+        <div class="d-flex flex-wrap align-items-center justify-content-between pb-2 mb-2 border-bottom gap-2">
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <h1 class="fs-5 fw-bold mb-0 text-dark d-flex align-items-center me-1">
+              <i class="bi bi-cart3 me-2 text-warning"></i>Tea & Snack POS
+            </h1>
+            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+              <i class="bi bi-cash-stack me-1"></i>Today's Revenue: <strong>{{ today_total|floatformat:2 }}</strong>
+            </span>
+            <span class="badge bg-secondary-subtle text-secondary border px-2 py-1 d-none d-md-inline-block" style="font-size:0.75rem;">
+              <kbd class="bg-dark text-white border-0 px-1">F2</kbd> Employee Search
+            </span>
+          </div>
+          <a href="{% url 'pos:daily_summary' %}" class="btn btn-sm btn-outline-secondary" id="btnDailySummary">
+            <i class="bi bi-journal-text me-1 text-primary"></i>Daily Summary Log
+          </a>
+        </div>
+
+        {# Categories Filter Pills #}
+        <div class="d-flex gap-1.5 overflow-x-auto flex-nowrap align-items-center mb-2 pb-1">
+          <button class="btn btn-sm text-nowrap fw-semibold px-3 py-1"
+                  :class="categoryId === '' ? 'btn-primary' : 'btn-outline-secondary'"
+                  @click="setCategory('')">
+            <i class="bi bi-grid-fill me-1"></i>All Items
+          </button>
+          {% for cat in categories %}
+            <button class="btn btn-sm text-nowrap fw-semibold px-3 py-1"
+                    :class="categoryId === '{{ cat.id }}' ? 'btn-primary' : 'btn-outline-secondary'"
+                    @click="setCategory('{{ cat.id }}')">
+              {{ cat.name }}
+            </button>
+          {% endfor %}
+        </div>
+
+        {# Menu Items Text Search Bar #}
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-body-tertiary border-end-0"><i class="bi bi-search text-body-secondary"></i></span>
+          <input type="text"
+                 class="form-control border-start-0"
+                 placeholder="Search menu items (or click item cards below)..."
+                 x-model="searchQuery"
+                 @input.debounce.250ms="filterItems()">
+          <button class="btn btn-outline-secondary" type="button" @click="searchQuery=''; filterItems()" x-show="searchQuery !== ''">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    {# 2. Item Cards Grid #}
+    <div class="card shadow-sm" id="cardItemGrid">
+      <div class="card-body p-3" id="posItemGrid">
+        {% include "pos/partials/item_grid.html" %}
+      </div>
+    </div>
+  </div>
+
+  {# ── Right Column: Customer Lookup & Single-Line Order Cart (5 cols) ── #}
+  <div class="col-lg-5 col-xl-5">
+
+    {# 1. Employee Instant Autocomplete Search Panel #}
+    <div class="card mb-3 shadow-sm position-relative" id="cardEmployeeLookup" style="z-index:1050;">
+      <div class="card-header bg-body-tertiary py-2 border-bottom">
+        <div class="d-flex justify-content-between align-items-center">
+          <span class="fw-bold small text-uppercase text-body"><i class="bi bi-person-bounding-box me-1 text-warning"></i>Customer / Employee Lookup</span>
+          <span class="badge bg-secondary-subtle text-body border" x-text="employee ? 'Registered Member' : 'Walk-in Customer'"></span>
+        </div>
+      </div>
+      <div class="card-body py-2.5 px-3">
+
+        {# Instant Compact Employee Search Input & Suggestions Dropdown #}
+        <div class="position-relative" x-show="!employee" @click.away="showEmpDropdown = false">
+          <div class="input-group input-group-sm mb-1">
+            <span class="input-group-text bg-body-tertiary"><i class="bi bi-person-search text-body-secondary"></i></span>
+            <input type="text" id="posPnoInput"
+                   x-model="searchEmpQuery"
+                   @focus="showEmpDropdown = true"
+                   @click.stop="showEmpDropdown = true"
+                   @input="showEmpDropdown = true"
+                   @keyup.enter="lookupEmployee()"
+                   placeholder="Search employee name or P-No... [F2]"
+                   class="form-control">
+            <button class="btn btn-primary" type="button" @click="lookupEmployee()" :disabled="searchingEmp">
+              <span x-show="!searchingEmp"><i class="bi bi-arrow-right"></i></span>
+              <span x-show="searchingEmp"><i class="spinner-border spinner-border-sm"></i></span>
+            </button>
+          </div>
+
+          {# Floating Autocomplete Suggestions Dropdown #}
+          <div class="position-absolute top-100 start-0 end-0 bg-body border rounded shadow-lg overflow-auto"
+               style="z-index:9999;max-height:260px;"
+               x-show="showEmpDropdown">
+            <template x-for="emp in filteredEmployees" :key="emp.id">
+              <div class="p-2 border-bottom d-flex align-items-center justify-content-between"
+                   style="cursor:pointer;"
+                   @click="selectEmp(emp)">
+                <div class="d-flex align-items-center gap-2">
+                  <template x-if="emp.photo_url">
+                    <img :src="emp.photo_url" alt="Photo" class="rounded-circle border" style="width:30px;height:30px;object-fit:cover;">
+                  </template>
+                  <template x-if="!emp.photo_url">
+                    <div class="rounded-circle bg-warning text-dark fw-bold d-flex align-items-center justify-content-center flex-shrink-0" style="width:30px;height:30px;font-size:0.75rem;" x-text="emp.initials"></div>
+                  </template>
+                  <div>
+                    <div class="fw-bold text-body small" x-text="emp.full_name"></div>
+                    <div class="text-body-secondary" style="font-size:0.75rem;">
+                      <span class="badge bg-secondary-subtle text-body border me-1" x-text="emp.pno"></span>
+                      <span x-text="emp.department"></span>
+                    </div>
+                  </div>
+                </div>
+                <i class="bi bi-chevron-right text-body-secondary small ms-2"></i>
+              </div>
+            </template>
+            <div class="p-2 text-center text-body-secondary small" x-show="filteredEmployees.length === 0">
+              No matching employee found.
+            </div>
+          </div>
+        </div>
+
+        <div x-show="empError" class="text-danger small mb-1" x-text="empError"></div>
+
+        {# Selected Employee Profile Card #}
+        <template x-if="employee">
+          <div class="employee-profile-card p-2 rounded border border-warning-subtle bg-warning-subtle text-dark d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-2">
+              <template x-if="employee.photo_url">
+                <img :src="employee.photo_url" alt="Photo" class="rounded-circle border border-2 border-warning shadow-sm" style="width:36px;height:36px;object-fit:cover;">
+              </template>
+              <template x-if="!employee.photo_url">
+                <div class="emp-avatar-badge rounded-circle bg-warning text-dark fw-bold d-flex align-items-center justify-content-center" style="width:36px;height:36px;font-size:0.95rem;" x-text="employee.initials"></div>
+              </template>
+              <div>
+                <div class="fw-bold text-dark small" x-text="employee.full_name"></div>
+                <div class="small text-dark-secondary" style="font-size:0.75rem;">
+                  <span class="badge bg-dark text-white me-1" x-text="employee.pno"></span>
+                  <span x-text="employee.department"></span>
+                </div>
+              </div>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" @click="clearEmployee()" title="Clear Member">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    {# 2. Cart Items & Single-Line Order Preview Panel #}
+    <div class="card card-cart shadow-sm" id="cardCart">
+      <div class="card-header bg-body-tertiary py-2 px-3 border-bottom d-flex justify-content-between align-items-center">
+        <h2 class="card-title h6 mb-0 fw-bold text-body"><i class="bi bi-receipt me-2 text-primary"></i>Current Order Cart</h2>
+        <button class="btn btn-sm btn-outline-danger" @click="clearCart()" x-show="cart.length > 0">
+          <i class="bi bi-trash me-1"></i>Clear Cart
+        </button>
+      </div>
+
+      <div class="card-body p-0 d-flex flex-column" style="min-height:360px;">
+        <div class="cart-items flex-grow-1 p-3" style="min-height:360px;max-height:460px;overflow-y:auto;">
+          <template x-if="cart.length === 0">
+            <div class="empty-state py-5 text-center text-body-secondary">
+              <i class="bi bi-cart-x fs-1 opacity-50 d-block mb-2"></i>
+              <p class="mb-0 fw-semibold">Cart is empty.</p>
+              <p class="small text-body-secondary mb-0">Click menu items on the left to add.</p>
+            </div>
+          </template>
+
+          {# Single Line Cart Item Layout #}
+          <template x-for="(item, index) in cart" :key="item.id">
+            <div class="cart-item-row d-flex align-items-center justify-content-between py-2 border-bottom gap-2">
+              <div class="fw-bold text-body text-truncate flex-grow-1" style="max-width:150px;" x-text="item.name" :title="item.name"></div>
+              
+              <div class="d-flex align-items-center gap-1">
+                <div class="input-group input-group-sm" style="width:105px;">
+                  <button class="btn btn-outline-secondary py-0 px-2" type="button" @click="updateQty(index, -1)">-</button>
+                  <input type="number"
+                         class="form-control form-control-sm text-center px-1 fw-bold font-monospace"
+                         min="1"
+                         :value="item.qty"
+                         @input="updateQtyDirect(index, $event.target.value)"
+                         style="max-width:42px;">
+                  <button class="btn btn-outline-secondary py-0 px-2" type="button" @click="updateQty(index, 1)">+</button>
+                </div>
+              </div>
+
+              <div class="fw-bold text-success font-monospace text-nowrap" style="min-width:75px;text-align:right;">
+                <span x-text="(item.price * item.qty).toFixed(2)"></span>
+              </div>
+
+              <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-1" @click="removeItem(index)" title="Remove item">
+                <i class="bi bi-trash fs-6"></i>
+              </button>
+            </div>
+          </template>
+        </div>
+
+        {# Total & Quick Cash Tender Section #}
+        <div class="cart-footer p-3 border-top bg-body-tertiary" x-show="cart.length > 0">
+          <div class="d-flex justify-content-between mb-2 fs-5 fw-bold">
+            <span class="text-body">Total Amount:</span>
+            <span class="text-primary font-monospace"><span x-text="total.toFixed(2)"></span></span>
+          </div>
+
+          {# Quick Tender Buttons — Same Single Line #}
+          <div class="d-flex align-items-center gap-1.5 mb-2 flex-wrap">
+            <label class="form-label small fw-bold text-body-secondary mb-0 me-1 text-nowrap">Quick Tender:</label>
+            <button type="button" class="btn btn-sm btn-outline-secondary py-0.5 px-2 font-monospace" @click="setTender('exact')">Exact</button>
+            <template x-for="denom in availableTenders" :key="denom">
+              <button type="button" class="btn btn-sm btn-outline-secondary py-0.5 px-2 font-monospace" @click="setTender(denom)" x-text="denom"></button>
+            </template>
+          </div>
+
+          <div class="mb-3">
+            <input type="number" x-model.number="amountPaid" class="form-control form-control-sm font-monospace" placeholder="Amount Paid" step="0.01">
+            <div class="mt-1 small d-flex justify-content-between fw-bold" :class="{'text-success': change >= 0, 'text-danger': change < 0}">
+              <span>Return Change:</span>
+              <strong class="font-monospace" x-text="(change >= 0 ? change.toFixed(2) : '0.00')"></strong>
+            </div>
+            <template x-if="isInsufficientPaid">
+              <div class="text-danger small fw-bold mt-1">
+                <i class="bi bi-exclamation-triangle-fill me-1"></i>Amount paid is less than total bill!
+              </div>
+            </template>
+          </div>
+
+          <button class="btn btn-success btn-lg w-100 fw-bold shadow-sm py-2" :disabled="isCheckoutDisabled" @click="submitSale()">
+            <span x-show="!loading"><i class="bi bi-check2-circle me-1"></i> Complete Checkout</span>
+            <span x-show="loading"><i class="spinner-border spinner-border-sm me-1"></i> Processing...</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'pos/js/pos.js' %}"></script>
+{% endblock %}

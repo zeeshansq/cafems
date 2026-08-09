@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ employee.full_name }} | {{ site_name }}{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'employees/css/employee_detail.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">{{ employee.full_name }}</h1>
+    <p class="page-header-subtitle">P-No: {{ employee.pno|default:"N/A" }} &bull; {{ employee.department|default:"No Department" }}</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'employees:list' %}" class="btn btn-outline-secondary" id="btnBack">
+      <i class="bi bi-arrow-left me-1"></i>Back
+    </a>
+    {% if request.user.can_manage_employees %}
+    <a href="{% url 'employees:update' employee.pk %}" class="btn btn-primary" id="btnEdit">
+      <i class="bi bi-pencil me-1"></i>Edit Profile
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-md-4">
+    <div class="card h-100" id="cardEmpProfile">
+      <div class="card-body text-center">
+        {% if employee.photo %}
+          <img src="{{ employee.photo.url }}" alt="{{ employee.full_name }}" class="rounded-circle mb-3 border border-3 border-warning shadow" style="width:96px;height:96px;object-fit:cover;">
+        {% else %}
+          <div class="avatar-lg mb-3 mx-auto d-flex align-items-center justify-content-center bg-warning text-dark fw-bold rounded-circle shadow" style="width:96px;height:96px;font-size:2.2rem;" id="empDetailAvatar">
+            {{ employee.full_name|slice:":1"|upper }}
+          </div>
+        {% endif %}
+        <h4>{{ employee.full_name }}</h4>
+        <p class="text-muted mb-2">{{ employee.designation|default:"Staff Member" }}</p>
+
+        <div class="d-flex justify-content-center gap-2 mb-3">
+          <span class="badge-pill {% if employee.membership_status %}badge-active{% else %}badge-inactive{% endif %}">
+            {% if employee.membership_status %}Active Member{% else %}Inactive{% endif %}
+          </span>
+          <span class="badge-pill {% if employee.is_full_open %}badge-active{% elif employee.is_roti_open %}badge-pending{% else %}badge-inactive{% endif %}">
+            {{ employee.get_membership_type_display }}
+          </span>
+        </div>
+
+        <ul class="list-group list-group-flush text-start border-top mt-3 pt-3">
+          <li class="list-group-item d-flex justify-content-between px-0">
+            <span class="text-muted">Register No:</span>
+            <strong>{{ employee.register_number|default:"—" }}</strong>
+          </li>
+          <li class="list-group-item d-flex justify-content-between px-0">
+            <span class="text-muted">System ID:</span>
+            <strong>{{ employee.system_id|default:"—" }}</strong>
+          </li>
+          <li class="list-group-item d-flex justify-content-between px-0">
+            <span class="text-muted">Email:</span>
+            <strong>{{ employee.email|default:"—" }}</strong>
+          </li>
+          <li class="list-group-item d-flex justify-content-between px-0">
+            <span class="text-muted">Mobile:</span>
+            <strong>{{ employee.mobile|default:"—" }}</strong>
+          </li>
+          <li class="list-group-item d-flex justify-content-between px-0">
+            <span class="text-muted">Telephone Ext:</span>
+            <strong>{{ employee.telephone_extension|default:"—" }}</strong>
+          </li>
+          <li class="list-group-item d-flex justify-content-between px-0">
+            <span class="text-muted">Deposit Paid:</span>
+            <strong class="text-success">PKR {{ employee.security_deposit_paid|floatformat:2 }}</strong>
+          </li>
+          <li class="list-group-item d-flex justify-content-between px-0">
+            <span class="text-muted">Deposit Pending:</span>
+            <strong class="{% if employee.security_deposit_pending > 0 %}text-danger{% else %}text-muted{% endif %}">
+              PKR {{ employee.security_deposit_pending|floatformat:2 }}
+            </strong>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-8">
+    {# Recent Tokens #}
+    <div class="card mb-4" id="cardEmpTokens">
+      <div class="card-header">
+        <h2 class="card-title"><i class="bi bi-ticket-perforated me-2 text-primary"></i>Recent Tokens Issued</h2>
+      </div>
+      <div class="card-body p-0">
+        {% if recent_tokens %}
+          <div class="table-responsive">
+            <table class="table mb-0">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Token #</th>
+                  <th>Extra Roti</th>
+                  <th>Extra Sweet</th>
+                  <th>Issued By</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for tok in recent_tokens %}
+                <tr>
+                  <td>{{ tok.date }}</td>
+                  <td><span class="badge bg-primary">#{{ tok.token_number }}</span></td>
+                  <td>{{ tok.extra_roti_qty }}</td>
+                  <td>{{ tok.extra_sweet_qty }}</td>
+                  <td>{{ tok.issued_by.display_name|default:"System" }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="p-3 text-muted">No recent token history.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# Recent Bills #}
+    <div class="card" id="cardEmpBills">
+      <div class="card-header">
+        <h2 class="card-title"><i class="bi bi-receipt me-2 text-success"></i>Recent Bills</h2>
+      </div>
+      <div class="card-body p-0">
+        {% if bills %}
+          <div class="table-responsive">
+            <table class="table mb-0">
+              <thead>
+                <tr>
+                  <th>Period</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                  <th class="text-end">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for b in bills %}
+                <tr>
+                  <td>{{ b.period_start|date:"M Y" }}</td>
+                  <td><strong>PKR {{ b.total|floatformat:2 }}</strong></td>
+                  <td>
+                    <span class="badge-pill {% if b.status == 'paid' %}badge-active{% else %}badge-pending{% endif %}">
+                      {{ b.get_status_display }}
+                    </span>
+                  </td>
+                  <td class="text-end">
+                    <a href="{% url 'billing:detail' b.pk %}" class="btn btn-sm btn-outline-primary">View</a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="p-3 text-muted">No billing history found.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'employees/js/employee_detail.js' %}"></script>
+{% endblock %}

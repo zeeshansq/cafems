@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Lunch Costing & Estimate Dashboard | {{ site_name }}{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'menu/css/costing_dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+
+  <!-- Header -->
+  <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-3">
+    <div>
+      <h2 class="h3 mb-0 fw-bold card-title-text">
+        <i class="bi bi-pie-chart-fill theme-text-primary me-2"></i>Lunch Menu Costing & Estimate Dashboard
+      </h2>
+      <p class="text-muted mb-0 small">Live analytics, daily expense tracking, and per-token unit cost estimations.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'menu:daily_estimate_create' %}" class="btn btn-primary fw-bold shadow-sm">
+        <i class="bi bi-plus-lg me-1"></i> Add Daily Menu Entry
+      </a>
+      <a href="{% url 'menu:daily_estimate' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-list-ul me-1"></i> All Entries
+      </a>
+    </div>
+  </div>
+
+  <!-- KPI Metric Cards -->
+  <div class="row g-4 mb-4">
+
+    <!-- Today's Special Dish -->
+    <div class="col-xl-3 col-md-6">
+      <div class="card costing-kpi-card border-0 shadow-sm rounded-3 bg-gradient text-white p-3" style="background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="text-white-50 small text-uppercase fw-bold">Today's Special Dish</span>
+          <i class="bi bi-egg-fried fs-3 text-white-50"></i>
+        </div>
+        <div class="h4 mb-1 fw-bold">{{ today_entry.dish_name|default:"Not Recorded Today" }}</div>
+        <div class="small text-white-50">
+          {% if today_entry %}
+            Cook: {{ today_entry.cook.name|default:"N/A" }} | Roti: {{ today_entry.get_roti_type_display }}
+          {% else %}
+            Click "Add Daily Entry" to record today's dish
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Today's Tokens Issued -->
+    <div class="col-xl-3 col-md-6">
+      <div class="card costing-kpi-card border-0 shadow-sm rounded-3 p-3 border-start border-info border-4">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <span class="text-muted small text-uppercase fw-semibold">Today's Tokens Issued</span>
+          <i class="bi bi-ticket-perforated text-info fs-4"></i>
+        </div>
+        <div class="h3 mb-0 fw-bold card-title-text">{{ today_entry.actual_tokens_issued|default:0 }}</div>
+        <div class="small text-muted mt-1">Est. Planned: {{ today_entry.planned_count|default:0 }} tokens</div>
+      </div>
+    </div>
+
+    <!-- Today's Unit Cost -->
+    <div class="col-xl-3 col-md-6">
+      <div class="card costing-kpi-card border-0 shadow-sm rounded-3 p-3 border-start border-success border-4">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <span class="text-muted small text-uppercase fw-semibold">Today's Unit Cost</span>
+          <i class="bi bi-currency-dollar text-success fs-4"></i>
+        </div>
+        <div class="h3 mb-0 fw-bold text-success">{{ today_entry.price_per_token|default:"0.00" }}</div>
+        <div class="small text-muted mt-1">Total Expense: {{ today_entry.total_expense|default:"0.00" }}</div>
+      </div>
+    </div>
+
+    <!-- MTD Average Unit Cost -->
+    <div class="col-xl-3 col-md-6">
+      <div class="card costing-kpi-card border-0 shadow-sm rounded-3 bg-dark text-white p-3">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <span class="text-white-50 small text-uppercase fw-semibold">MTD Avg Unit Cost</span>
+          <i class="bi bi-graph-up-arrow text-warning fs-4"></i>
+        </div>
+        <div class="h3 mb-0 fw-bold text-warning">{{ month_avg_cost }}</div>
+        <div class="small text-white-50 mt-1">{{ tot_month_tokens }} total tokens issued this month</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Middle Section: Today's Detailed Card & Setup Quick Links -->
+  <div class="row g-4 mb-4">
+    <!-- Today's Entry Overview Card -->
+    <div class="col-lg-8">
+      <div class="card costing-section-card border-0 shadow-sm rounded-3 h-100">
+        <div class="card-header costing-card-header py-3 d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0 fw-bold card-title-text">
+            <i class="bi bi-calendar-check theme-text-primary me-2"></i>Today's Operational Summary ({{ today }})
+          </h5>
+          {% if today_entry %}
+            <a href="{% url 'menu:daily_estimate_update' today_entry.pk %}" class="btn btn-sm btn-outline-primary fw-bold">Edit Today's Entry</a>
+          {% else %}
+            <a href="{% url 'menu:daily_estimate_create' %}" class="btn btn-sm btn-primary fw-bold">Set Today's Entry</a>
+          {% endif %}
+        </div>
+        <div class="card-body p-4">
+          {% if today_entry %}
+            <div class="row g-4">
+              <div class="col-md-6">
+                <div class="p-3 costing-stat-bg rounded-3">
+                  <div class="text-muted small">Dish Name</div>
+                  <div class="h5 fw-bold card-title-text mb-2">{{ today_entry.dish_name }}</div>
+                  <div class="d-flex flex-wrap gap-2">
+                    <span class="badge bg-primary">Cook: {{ today_entry.cook.name|default:"N/A" }}</span>
+                    <span class="badge bg-secondary">Roti: {{ today_entry.get_roti_type_display }}</span>
+                    {% if today_entry.sweet %}
+                      <span class="badge bg-danger">Sweet: {{ today_entry.sweet.name }}</span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <div class="p-3 costing-stat-bg rounded-3">
+                  <div class="row text-center g-2">
+                    <div class="col-4 border-end">
+                      <div class="text-muted small">Tokens</div>
+                      <div class="fw-bold fs-5 text-primary">{{ today_entry.actual_tokens_issued }}</div>
+                    </div>
+                    <div class="col-4 border-end">
+                      <div class="text-muted small">Extra Roti</div>
+                      <div class="fw-bold fs-5 text-warning">{{ today_entry.actual_extra_roti_issued }}</div>
+                    </div>
+                    <div class="col-4">
+                      <div class="text-muted small">Extra Sweets</div>
+                      <div class="fw-bold fs-5 text-danger">{{ today_entry.actual_extra_sweet_issued }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-12">
+                <div class="p-3 costing-stat-bg rounded-3 d-flex justify-content-between align-items-center">
+                  <div>
+                    <span class="text-muted small">Total Daily Expense: </span>
+                    <strong class="card-title-text fs-5">PKR {{ today_entry.total_expense }}</strong>
+                    {% if today_entry.adjustment_amount != 0 %}
+                      <span class="ms-2 text-muted small">(Adjustment: {{ today_entry.adjustment_amount }})</span>
+                    {% endif %}
+                  </div>
+                  <div>
+                    <span class="text-muted small me-2">Calculated Unit Cost:</span>
+                    <span class="badge bg-success fs-5 px-3 py-2">PKR {{ today_entry.price_per_token }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% else %}
+            <div class="text-center py-4 text-muted">
+              <i class="bi bi-exclamation-circle text-warning fs-1 d-block mb-2"></i>
+              No menu entry has been recorded for today yet.
+              <div class="mt-3">
+                <a href="{% url 'menu:daily_estimate_create' %}" class="btn btn-primary px-4 fw-bold">Record Today's Menu Entry</a>
+              </div>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Setup Cards -->
+    <div class="col-lg-4">
+      <div class="card costing-section-card border-0 shadow-sm rounded-3 h-100">
+        <div class="card-header costing-card-header py-3">
+          <h5 class="card-title mb-0 fw-bold card-title-text">
+            <i class="bi bi-gear text-secondary me-2"></i>Setup & System Tables
+          </h5>
+        </div>
+        <div class="card-body p-4">
+          <div class="d-flex align-items-center justify-content-between p-3 costing-stat-bg rounded-3 mb-3">
+            <div>
+              <div class="fw-bold card-title-text">Cooks Setup</div>
+              <div class="small text-muted">{{ cooks_count }} active cooks registered</div>
+            </div>
+            <a href="{% url 'menu:setup_index' %}?tab=cooks" class="btn btn-sm btn-outline-primary fw-bold">Manage Cooks</a>
+          </div>
+
+          <div class="d-flex align-items-center justify-content-between p-3 costing-stat-bg rounded-3 mb-3">
+            <div>
+              <div class="fw-bold card-title-text">Sweets Setup</div>
+              <div class="small text-muted">{{ sweets_count }} sweets registered with prices</div>
+            </div>
+            <a href="{% url 'menu:setup_index' %}?tab=sweets" class="btn btn-sm btn-outline-primary fw-bold">Manage Sweets</a>
+          </div>
+
+          <div class="d-flex align-items-center justify-content-between p-3 costing-stat-bg rounded-3">
+            <div>
+              <div class="fw-bold card-title-text">Roti Prices Setup</div>
+              <div class="small text-muted">Roti (15), Naan (20), Roghni (40)</div>
+            </div>
+            <a href="{% url 'menu:setup_index' %}?tab=roti" class="btn btn-sm btn-outline-primary fw-bold">Manage Prices</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Entries Table -->
+  <div class="card costing-section-card border-0 shadow-sm rounded-3 overflow-hidden">
+    <div class="card-header costing-card-header py-3 d-flex justify-content-between align-items-center">
+      <h5 class="card-title mb-0 fw-bold card-title-text">
+        <i class="bi bi-clock-history me-2 theme-text-primary"></i>Recent Daily Entries & Costing Logs
+      </h5>
+      <a href="{% url 'menu:daily_estimate' %}" class="btn btn-sm btn-outline-secondary">View All Entries</a>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 table-theme">
+        <thead>
+          <tr>
+            <th class="ps-4">Date</th>
+            <th>Dish Name</th>
+            <th>Cook</th>
+            <th class="text-center">Tokens Issued</th>
+            <th class="text-end">Total Expense</th>
+            <th class="text-end">Unit Cost</th>
+            <th class="text-center pe-4">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for entry in recent_entries %}
+            <tr>
+              <td class="ps-4 fw-bold card-title-text">{{ entry.date }}</td>
+              <td>{{ entry.dish_name|default:"General Lunch" }}</td>
+              <td>{{ entry.cook.name|default:"—" }}</td>
+              <td class="text-center fw-bold text-primary">{{ entry.actual_tokens_issued }}</td>
+              <td class="text-end fw-bold">PKR {{ entry.total_expense }}</td>
+              <td class="text-end">
+                <span class="badge bg-success px-3 py-1">PKR {{ entry.price_per_token }}</span>
+              </td>
+              <td class="text-center pe-4">
+                <a href="{% url 'menu:daily_estimate_report' entry.pk %}" class="btn btn-sm btn-outline-secondary" target="_blank">
+                  <i class="bi bi-printer me-1"></i> A4 Report
+                </a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="7" class="text-center py-4 text-muted">No entries recorded yet.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'menu/js/costing_dashboard.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,29 @@
+﻿{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>500 Server Error | CafeMS</title>
+  <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+  <link rel="stylesheet" href="{% static 'css/bootstrap-icons.min.css' %}">
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+  <style>
+    body{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--clr-bg);}
+    .ec{text-align:center;max-width:460px;padding:3rem 2rem;}
+    .en{font-size:7rem;font-weight:900;color:var(--clr-danger);line-height:1;opacity:.12;}
+    .ei{font-size:3.5rem;color:var(--clr-danger);margin:-1rem 0 1rem;}
+    .et{font-size:1.5rem;font-weight:700;margin-bottom:.5rem;}
+    .ed{color:var(--clr-text-muted);margin-bottom:2rem;}
+  </style>
+</head>
+<body>
+  <div class="ec">
+    <div class="en">500</div>
+    <div class="ei"><i class="bi bi-exclamation-octagon-fill"></i></div>
+    <h1 class="et">Server Error</h1>
+    <p class="ed">Something went wrong on our end. The team has been notified. Please try again shortly.</p>
+    <a href="/" class="btn btn-primary" id="btnHome"><i class="bi bi-house me-1"></i>Go to Dashboard</a>
+  </div>
+</body>
+</html>

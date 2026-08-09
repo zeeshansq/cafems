@@ -1,0 +1,179 @@
+{% extends "base_minimal.html" %}
+{% load static %}
+
+{% block title %}Sign In | CafeMS Enterprise Cafeteria System{% endblock %}
+{% block meta_description %}Sign in to CafeMS – Enterprise Cafeteria & Meal Token Management System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'accounts/css/login.css' %}">
+{% endblock %}
+
+{% block body %}
+<div class="login-page" id="loginPage">
+
+  {# ── Culinary Mesh Gradient Orbs & Upward Floating Icons ─── #}
+  <div class="login-bg" aria-hidden="true">
+    <div class="login-bg-mesh"></div>
+    <div class="login-bg-orb login-bg-orb-saffron"></div>
+    <div class="login-bg-orb login-bg-orb-terracotta"></div>
+    <div class="login-bg-orb login-bg-orb-mint"></div>
+    <div class="food-icon-rain" id="foodIconRain"></div>
+  </div>
+
+  {# ── Top Header System Status ─────────────────────────────── #}
+  <div class="login-top-bar">
+    <div class="system-status-chip" id="systemStatusChip">
+      <span class="status-dot"></span>
+      <span class="status-text"><i class="bi bi-shield-check me-1 text-warning"></i>Official Cafeteria Portal</span>
+    </div>
+  </div>
+
+  {# ── Login Card Container ─────────────────────────────────── #}
+  <div class="login-container">
+    <div class="login-card" id="loginCard">
+      <div class="card-light-spot" id="cardLightSpot"></div>
+
+      {# Brand Header #}
+      <div class="login-brand" id="loginBrand">
+        <div class="brand-logo-ring">
+          {% if site_logo %}
+          <img src="{{ site_logo }}" alt="CafeMS" class="login-brand-logo" id="loginLogo">
+          {% else %}
+          <div class="login-brand-icon" id="loginBrandIcon">
+            <i class="bi bi-cup-hot-fill"></i>
+          </div>
+          {% endif %}
+        </div>
+        <h1 class="login-brand-name" id="loginBrandName">
+          {% if "127.0.0.1" in site_name or "localhost" in site_name or not site_name %}CafeMS Enterprise{% else %}{{
+          site_name }}{% endif %}
+        </h1>
+        <div class="login-brand-badge"><i class="bi bi-award me-1"></i>Dining & Meal Token System</div>
+      </div>
+
+      {# Quick Test Credentials Switcher #}
+      {% if ENABLE_DEMO_LOGIN %}
+      <div class="quick-credentials-bar mb-4" id="quickCredsBar">
+        <div class="quick-creds-title">
+          <i class="bi bi-lightning-charge-fill text-warning me-1"></i>Demo Quick Access:
+        </div>
+        <div class="d-flex gap-2 justify-content-center mt-2 flex-wrap">
+          <button type="button" class="btn btn-sm btn-quick-login" data-email="admin@cafems.com" data-pwd="admin123!@#"
+            id="btnCredSuperAdmin">
+            <i class="bi bi-shield-lock me-1"></i>Super Admin
+          </button>
+          <button type="button" class="btn btn-sm btn-quick-login" data-email="cafe_admin@democafe.com"
+            data-pwd="admin123!@#" id="btnCredCafeAdmin">
+            <i class="bi bi-shop me-1"></i>Cafe Manager
+          </button>
+          <button type="button" class="btn btn-sm btn-quick-login" data-email="staff@cafems.local"
+            data-pwd="admin123!@#" id="btnCredCafeStaff">
+            <i class="bi bi-person-badge me-1"></i>Cafe Counter Staff
+          </button>
+        </div>
+      </div>
+      {% endif %}
+
+      {# Form Wrapper #}
+      <div class="login-form-wrap">
+        <div class="text-center mb-4">
+          <h2 class="login-title" id="loginFormTitle">Sign In to Your Account</h2>
+          <p class="login-subtitle">Enter your corporate email address and password to access the meal token & billing
+            portal.</p>
+        </div>
+
+        <form method="post" action="{% url 'accounts:login' %}" id="loginForm" autocomplete="on" data-submit-once>
+          {% csrf_token %}
+
+          {# Non-field errors #}
+          {% if form.non_field_errors %}
+          <div class="login-error" role="alert" id="loginError">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            {{ form.non_field_errors.0 }}
+          </div>
+          {% endif %}
+
+          {# Email Input #}
+          <div class="mb-3">
+            <label for="id_email" class="form-label">Corporate Email Address</label>
+            <div class="input-group input-group-lg login-input-group" id="groupEmail">
+              <span class="input-group-text">
+                <i class="bi bi-envelope-at text-warning"></i>
+              </span>
+              {{ form.username }}
+            </div>
+            {% if form.username.errors %}
+            <div class="invalid-feedback d-block">{{ form.username.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          {# Password Input #}
+          <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label for="id_password" class="form-label mb-0">Password</label>
+            </div>
+            <div class="input-group input-group-lg login-input-group" id="passwordToggleGroup">
+              <span class="input-group-text">
+                <i class="bi bi-key text-warning"></i>
+              </span>
+              {{ form.password }}
+              <button type="button" class="input-group-text btn-toggle-pwd" id="passwordToggleBtn"
+                aria-label="Show or hide password">
+                <i class="bi bi-eye-slash" id="passwordToggleIcon"></i>
+              </button>
+            </div>
+            {% if form.password.errors %}
+            <div class="invalid-feedback d-block">{{ form.password.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          {# Remember Me & Options #}
+          <div class="d-flex align-items-center justify-content-between mb-4">
+            <div class="form-check custom-checkbox">
+              {{ form.remember_me }}
+              <label class="form-check-label text-muted-glow" for="id_remember_me">
+                Remember this device for 30 days
+              </label>
+            </div>
+            <span class="security-tag" title="256-Bit SSL Encrypted">
+              <i class="bi bi-shield-lock-fill me-1 text-success"></i>256-Bit SSL
+            </span>
+          </div>
+
+          {# Submit Button #}
+          <button type="submit" class="btn btn-primary btn-lg w-100 login-btn" id="loginSubmitBtn">
+            <span id="loginBtnText">
+              <span>Sign In to Portal</span>
+              <i class="bi bi-arrow-right-short ms-1 fs-4 align-middle"></i>
+            </span>
+          </button>
+        </form>
+      </div>
+
+      {# Card Footer #}
+      <div class="login-footer" id="loginCardFooter">
+        <div class="d-flex justify-content-between align-items-center text-muted-glow small">
+          <span>&copy; {% now "Y" %} CafeMS • Enterprise Cafeteria Suite</span>
+          <span>Authorized Personnel Only</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+{# Toast container #}
+<div id="toastContainer" class="toast-container" role="status" aria-live="polite"></div>
+
+{# Django messages #}
+{% for message in messages %}
+<div data-toast="{{ message.tags|default:'info' }}" data-toast-message="{{ message|escapejs }}" hidden></div>
+{% endfor %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+<script src="{% static 'js/app.js' %}"></script>
+<script src="{% static 'accounts/js/login.js' %}"></script>
+{% endblock %}

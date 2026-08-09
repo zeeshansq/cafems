@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if object %}Edit Cook{% else %}Add Cook{% endif %} | {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card border-0 shadow-sm rounded-3">
+        <div class="card-header bg-white py-3 border-bottom border-light">
+          <h5 class="card-title mb-0 fw-bold text-dark">
+            <i class="bi bi-person-badge text-warning me-2"></i>{% if object %}Edit Cook: {{ object.name }}{% else %}Add New Cook{% endif %}
+          </h5>
+        </div>
+        <div class="card-body p-4">
+          <form method="post">
+            {% csrf_token %}
+
+            <div class="mb-3">
+              <label class="form-label fw-bold text-secondary">Cook / Chef Name <span class="text-danger">*</span></label>
+              {{ form.name }}
+              {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors }}</div>{% endif %}
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-bold text-secondary">Phone Number</label>
+              {{ form.phone }}
+              {% if form.phone.errors %}<div class="text-danger small">{{ form.phone.errors }}</div>{% endif %}
+            </div>
+
+            <div class="mb-4 form-check form-switch">
+              {{ form.is_active }}
+              <label class="form-check-label fw-bold text-secondary" for="id_cook_active">Active Cook (Available in Daily Menu Entry)</label>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2">
+              <a href="{% url 'menu:setup_index' %}?tab=cooks" class="btn btn-light px-4">Cancel</a>
+              <button type="submit" class="btn btn-primary px-4 fw-bold">{% if object %}Update Cook{% else %}Save Cook{% endif %}</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

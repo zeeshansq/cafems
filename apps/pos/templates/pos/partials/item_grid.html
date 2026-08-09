@@ -1,0 +1,49 @@
+{# POS item grid partial with Visual Dish Photos & Badges #}
+<div class="row g-3">
+  {% for item in items %}
+  <div class="col-6 col-sm-4 col-md-3">
+    <div class="card card-item h-100 text-center p-2 cursor-pointer shadow-sm hover-lift border-0 overflow-hidden"
+         data-id="{{ item.id }}"
+         data-name="{{ item.name }}"
+         data-price="{{ item.price }}"
+         @click="addItemFromEl($event.currentTarget)"
+         style="background:var(--clr-surface-2);border-radius:var(--radius-md);transition:all var(--transition-fast);">
+      
+      {% if item.image %}
+        <div class="position-relative mb-2 overflow-hidden rounded" style="height:95px;">
+          <img src="{{ item.image.url }}" alt="{{ item.name }}" class="w-100 h-100 object-fit-cover rounded">
+          <span class="position-absolute top-0 end-0 bg-dark bg-opacity-75 text-white text-xs px-2 py-1 m-1 rounded fw-bold">
+            PKR {{ item.price|floatformat:2 }}
+          </span>
+        </div>
+      {% else %}
+        <div class="item-icon-box mx-auto mb-2 position-relative d-flex align-items-center justify-content-center rounded-3" 
+             style="width:100%;height:82px;background:linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(234, 88, 12, 0.2) 100%);border:1px solid rgba(245, 158, 11, 0.25);">
+          {% if "Chai" in item.name or "Tea" in item.name %}
+            <i class="bi bi-cup-hot-fill fs-1 text-warning"></i>
+          {% elif "Samosa" in item.name or "Pakora" in item.name %}
+            <i class="bi bi-triangle-fill fs-2 text-warning"></i>
+          {% elif "Patties" in item.name or "Cookie" in item.name %}
+            <i class="bi bi-pie-chart-fill fs-2 text-warning"></i>
+          {% elif "Sandwich" in item.name %}
+            <i class="bi bi-egg-fried fs-1 text-warning"></i>
+          {% else %}
+            <i class="bi bi-cup-straw fs-1 text-warning"></i>
+          {% endif %}
+          <span class="position-absolute bottom-0 end-0 bg-dark text-warning small px-2 py-1 m-1 rounded-pill fw-bold border border-warning-subtle">
+            PKR {{ item.price|floatformat:0 }}
+          </span>
+        </div>
+      {% endif %}
+
+      <div class="fw-bold text-truncate text-dark px-1" style="font-size:0.875rem;" title="{{ item.name }}">{{ item.name }}</div>
+      <div class="text-muted small text-truncate px-1" style="font-size:0.75rem;">{{ item.category.name|default:"General Item" }}</div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-12 py-5 text-center text-muted">
+    <i class="bi bi-inbox fs-1 opacity-50"></i>
+    <p class="mt-2 mb-0">No menu items match your query.</p>
+  </div>
+  {% endfor %}
+</div>

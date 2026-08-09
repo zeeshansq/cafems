@@ -1,0 +1,180 @@
+{% extends "base_minimal.html" %}
+{% load static %}
+
+{% block title %}Receipt – {{ order_ref }} | {{ site_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .thermal-receipt-container {
+    width: 80mm;
+    max-width: 80mm;
+    margin: 15px auto;
+    padding: 8px 10px;
+    background: #fff;
+    color: #000;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 11px;
+    line-height: 1.3;
+    border: 1px solid #ddd;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+
+  .thermal-receipt-container h1 {
+    font-size: 13px;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 2px;
+    text-transform: uppercase;
+  }
+
+  .thermal-receipt-container h2 {
+    font-size: 10.5px;
+    text-align: center;
+    margin-bottom: 6px;
+    color: #333;
+  }
+
+  .receipt-divider {
+    border-top: 1px dashed #000;
+    margin: 5px 0;
+  }
+
+  .receipt-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 4px 0;
+    table-layout: fixed;
+  }
+
+  .receipt-table th {
+    font-size: 10px;
+    text-transform: uppercase;
+    border-bottom: 1px dashed #000;
+    padding-bottom: 3px;
+    white-space: nowrap;
+  }
+
+  .receipt-table td {
+    padding: 3px 0;
+    font-size: 10.5px;
+    vertical-align: middle;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .receipt-total-row {
+    font-size: 12px;
+    font-weight: bold;
+  }
+
+  @media print {
+    @page {
+      size: 80mm auto;
+      margin: 0mm;
+    }
+    body {
+      background: #fff !important;
+      color: #000 !important;
+    }
+    .print-controls-bar {
+      display: none !important;
+    }
+    .thermal-receipt-container {
+      width: 80mm !important;
+      max-width: 80mm !important;
+      margin: 0 !important;
+      padding: 3mm 4mm !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Top Sticky Control Bar (Hidden on print) -->
+<div class="print-controls-bar d-print-none bg-dark text-white p-2 shadow-sm sticky-top">
+  <div class="container-fluid d-flex justify-content-between align-items-center">
+    <div class="fw-bold small">
+      <i class="bi bi-printer me-2 text-warning"></i>80mm Thermal Receipt (Opened in New Tab)
+    </div>
+    <div class="d-flex gap-2">
+      <button onclick="window.print()" class="btn btn-warning btn-sm fw-bold text-dark px-3">
+        <i class="bi bi-printer me-1"></i> Print Receipt
+      </button>
+      <button onclick="window.close()" class="btn btn-outline-light btn-sm px-3">
+        <i class="bi bi-x-lg me-1"></i> Close Tab
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- 80mm Thermal Printer Receipt Box -->
+<div class="thermal-receipt-container">
+  
+  <!-- Header -->
+  <h1>{{ site_name|default:"TEA & SNACK CAFETERIA" }}</h1>
+
+  <div class="receipt-divider"></div>
+
+  <!-- Order & Buyer Metadata -->
+  <div>
+    <div><strong>Order Ref:</strong> {{ order_ref }}</div>
+    <div><strong>Date/Time:</strong> {{ first_sale.created_at|date:"d-M-Y h:i A" }}</div>
+    <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+      <strong>Customer:</strong> 
+      {% if first_sale.buyer %}
+        {{ first_sale.buyer.full_name }} ({{ first_sale.buyer.pno|default:"—" }})
+      {% else %}
+        Walk-in Customer
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="receipt-divider"></div>
+
+  <!-- Items Table: Each Item Strictly on a Single Line -->
+  <table class="receipt-table">
+    <thead>
+      <tr>
+        <th class="text-start" style="width:10%;">QTY</th>
+        <th class="text-start" style="width:48%;">ITEM</th>
+        <th class="text-end" style="width:18%;">RATE</th>
+        <th class="text-end" style="width:24%;">TOTAL</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in sales %}
+      <tr>
+        <td class="text-start font-monospace" style="width:10%;">{{ s.quantity }}x</td>
+        <td class="text-start fw-bold" style="width:48%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="{{ s.item.name }}">
+          {{ s.item.name }}
+        </td>
+        <td class="text-end font-monospace" style="width:18%;">{{ s.unit_price|floatformat:0 }}</td>
+        <td class="text-end font-monospace fw-bold" style="width:24%;">{{ s.amount_paid|floatformat:2 }}</td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="4" class="text-center py-2">No items in receipt.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="receipt-divider"></div>
+
+  <!-- Totals Summary Table -->
+  <table class="receipt-table">
+    <tr class="receipt-total-row">
+      <td class="text-start" style="width:65%;">TOTAL (CASH):</td>
+      <td class="text-end font-monospace" style="width:35%;">{{ total_amount|floatformat:2 }}</td>
+    </tr>
+    <tr>
+      <td class="text-start" style="width:65%;font-size:10px;">Total Items Count:</td>
+      <td class="text-end font-monospace" style="width:35%;font-size:10px;">{{ total_qty }} Pcs</td>
+    </tr>
+  </table>
+
+</div>
+{% endblock %}

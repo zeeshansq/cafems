@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }} | {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+
+  {# ── Header Bar ────────────────────────────────────────────────────── #}
+  <div class="d-flex flex-wrap align-items-center justify-content-between pb-3 mb-3 border-bottom gap-2">
+    <div>
+      <h1 class="h3 fw-bold mb-0 text-body d-flex align-items-center">
+        <i class="bi bi-ticket-perforated-fill me-2 text-warning"></i>My Monthly Token Summary & Attendance Log
+      </h1>
+      <p class="text-body-secondary small mb-0">
+        Review your personal lunch tokens issued, extra roti, extra sweet add-ons, and dining attendance log.
+      </p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'reports:my_reports_index' %}" class="btn btn-outline-secondary btn-sm fw-bold">
+        <i class="bi bi-arrow-left me-1"></i>My Reports Hub
+      </a>
+    </div>
+  </div>
+
+  {# ── Member Filter Bar ─────────────────────────────────────────────── #}
+  <div class="card shadow-sm mb-4 border-0 bg-body-tertiary">
+    <div class="card-body p-3">
+      <form method="get" action="" class="row g-2 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label small fw-bold text-body-secondary mb-1">Start Date</label>
+          <input type="date" name="start_date" value="{{ start_date|date:'Y-m-d' }}" class="form-control form-control-sm">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small fw-bold text-body-secondary mb-1">End Date</label>
+          <input type="date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" class="form-control form-control-sm">
+        </div>
+        <div class="col-md-4 d-flex gap-2">
+          <button type="submit" class="btn btn-warning btn-sm fw-bold w-100 text-dark shadow-sm">
+            <i class="bi bi-funnel-fill me-1"></i>Filter
+          </button>
+          <a href="?" class="btn btn-outline-secondary btn-sm" title="Reset">
+            <i class="bi bi-arrow-counterclockwise"></i>
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {# ── KPI Summary Cards ─────────────────────────────────────────────── #}
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0 bg-warning-subtle text-warning-emphasis p-3 rounded-3">
+        <div class="small fw-semibold text-uppercase">My Tokens Issued</div>
+        <div class="h2 mb-0 fw-bold font-monospace">{{ total_tokens }}</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0 bg-success-subtle text-success p-3 rounded-3">
+        <div class="small fw-semibold text-uppercase">My Extra Roti</div>
+        <div class="h2 mb-0 fw-bold font-monospace">+{{ total_roti }}</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0 bg-info-subtle text-info p-3 rounded-3">
+        <div class="small fw-semibold text-uppercase">My Extra Sweets</div>
+        <div class="h2 mb-0 fw-bold font-monospace">+{{ total_sweet }}</div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Data Roster Table ────────────────────────────────────────────── #}
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-body-tertiary py-2.5 px-3 border-bottom d-flex justify-content-between align-items-center">
+      <h2 class="h6 mb-0 fw-bold text-body"><i class="bi bi-list-check me-2 text-warning"></i>My Lunch Token Issuance History</h2>
+      <span class="badge bg-secondary-subtle text-body border">{{ tokens_list|length }} Records</span>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 text-nowrap">
+          <thead class="bg-body-tertiary text-uppercase small text-body-secondary">
+            <tr>
+              <th>Date</th>
+              <th>Dish / Menu Item</th>
+              <th class="text-center">Token Qty</th>
+              <th class="text-center">Extra Roti</th>
+              <th class="text-center">Extra Sweet</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for tok in tokens_list %}
+              <tr>
+                <td class="font-monospace small fw-bold">{{ tok.date|date:"d-M-Y" }}</td>
+                <td class="fw-bold text-body">{{ tok.daily_estimate.dish_name|default:"Lunch Token" }}</td>
+                <td class="text-center font-monospace fw-bold text-primary">{{ tok.token_qty }}</td>
+                <td class="text-center font-monospace text-success">+{{ tok.extra_roti_qty }}</td>
+                <td class="text-center font-monospace text-warning-emphasis">+{{ tok.extra_sweet_qty }}</td>
+                <td><span class="badge bg-success-subtle text-success border">ISSUED</span></td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="6" class="text-center py-5 text-body-secondary">No lunch tokens issued for the selected period.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

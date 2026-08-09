@@ -1,0 +1,625 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Issue Tokens | {{ site_name }}{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'tokens/css/issue.css' %}">
+  <style>
+    .emp-search-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      z-index: 1050;
+      max-height: 280px;
+      overflow-y: auto;
+      background: var(--clr-surface);
+      border: 1px solid var(--clr-border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+    }
+    .emp-suggestion-item {
+      padding: 0.65rem 1rem;
+      cursor: pointer;
+      border-bottom: 1px solid var(--clr-border);
+      transition: background var(--transition-fast);
+    }
+    .emp-suggestion-item:last-child {
+      border-bottom: none;
+    }
+    .emp-suggestion-item:hover {
+      background: var(--clr-surface-2);
+    }
+    .emp-photo-avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid var(--clr-primary);
+      box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3);
+    }
+    .emp-photo-avatar-placeholder {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--clr-primary), var(--clr-accent-terracotta));
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 1.6rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 14px rgba(234, 88, 12, 0.35);
+    }
+    .premium-stats-card {
+      background: var(--clr-surface-2);
+      border: 1.5px solid var(--clr-primary);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      position: relative;
+    }
+    .premium-stats-card.issued-already {
+      border-color: var(--clr-danger) !important;
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+{{ employees_json|json_script:"employees-json-data" }}
+
+<div x-data="tokenIssueApp()" class="row g-4" id="tokenIssueApp">
+
+  {# ── Top Header Bar ─────────────────────────────────────────────────── #}
+  <div class="col-12">
+    <div class="page-header mb-0">
+      <div>
+        <h1 class="page-header-title">
+          <i class="bi bi-ticket-perforated-fill me-2 text-warning"></i>Issue Lunch Tokens
+        </h1>
+        <p class="page-header-subtitle">
+          <i class="bi bi-calendar-event me-1 text-primary"></i>{{ target_date|date:"l, F j, Y" }} &bull; Member Search & Counter Token Issuance
+        </p>
+      </div>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        {% if is_admin %}
+          <form method="get" action="{% url 'tokens:issue' %}" class="d-flex align-items-center gap-2 bg-surface-2 p-1.5 rounded border border-warning-subtle">
+            <span class="badge bg-warning text-dark fw-bold"><i class="bi bi-shield-lock-fill me-1"></i>Admin Date Picker</span>
+            <input type="date" name="date" value="{{ target_date|date:'Y-m-d' }}" class="form-control form-control-sm fw-bold border-warning" style="width:160px;" onchange="this.form.submit()">
+            {% if target_date != today %}
+              <a href="{% url 'tokens:issue' %}" class="btn btn-sm btn-outline-warning text-dark fw-bold">Reset Today</a>
+            {% endif %}
+          </form>
+        {% endif %}
+        <a href="{% url 'tokens:employee_history' %}" class="btn btn-outline-secondary fw-semibold" id="btnEmployeeHistory">
+          <i class="bi bi-clock-history me-1 text-warning"></i>Employee History
+        </a>
+        <a href="{% url 'tokens:daily_report' %}?date={{ target_date|date:'Y-m-d' }}" class="btn btn-outline-secondary" id="btnDailyReport">
+          <i class="bi bi-journal-text me-1 text-primary"></i>Daily Closing Report
+        </a>
+      </div>
+    </div>
+  </div>
+
+  {# ── Daily Lunch Menu Item Banner & Warning Notice ── #}
+  <div class="col-12 mb-2">
+    {% if is_menu_configured %}
+      <div class="card border-0 shadow-sm rounded-3 bg-body border-start border-success border-4 overflow-hidden">
+        <div class="card-body p-3 d-flex flex-wrap align-items-center justify-content-between gap-3">
+          <div class="d-flex align-items-center gap-3">
+            <div class="rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center p-3 fs-3" style="width:52px;height:52px;">
+              <i class="bi bi-egg-fried"></i>
+            </div>
+            <div>
+              <div class="text-body-secondary small text-uppercase fw-semibold">
+                Daily Lunch Dish — <span class="text-body fw-bold">{{ target_date|date:"l, F j, Y" }}</span>
+              </div>
+              <div class="h5 mb-1 fw-bold text-body">{{ estimate.dish_name }}</div>
+              <div class="small text-body-secondary">
+                <span class="badge bg-secondary-subtle text-body border me-1"><i class="bi bi-disc me-1"></i>{{ estimate.get_roti_type_display }}</span>
+                {% if estimate.sweet %}
+                  <span class="badge bg-warning-subtle text-dark border me-1"><i class="bi bi-cup-straw me-1"></i>{{ estimate.sweet.name }}</span>
+                {% endif %}
+                {% if estimate.cook %}
+                  <span class="badge bg-info-subtle text-info border"><i class="bi bi-person-workspace me-1"></i>Cook: {{ estimate.cook.name }}</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 fw-bold">
+              <i class="bi bi-check-circle-fill me-1"></i>Menu Configured
+            </span>
+            {% if is_admin %}
+              <a href="{% url 'menu:daily_estimate' %}?date={{ target_date|date:'Y-m-d' }}" class="btn btn-sm btn-outline-secondary fw-semibold">
+                <i class="bi bi-pencil me-1"></i>Edit Menu
+              </a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <div class="alert alert-danger border-2 border-danger shadow-sm p-3 rounded-3 mb-0 d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div class="d-flex align-items-center gap-3">
+          <i class="bi bi-exclamation-octagon-fill text-danger fs-1"></i>
+          <div>
+            <h5 class="fw-bold text-danger mb-1">Lunch Menu Not Configured for {{ target_date|date:"l, F j, Y" }}</h5>
+            <div class="small text-body">
+              Daily main lunch dish item has not been entered for this date. <strong>Token issuance is restricted</strong> until the daily menu item is configured.
+            </div>
+          </div>
+        </div>
+        <a href="{% url 'menu:daily_estimate' %}?date={{ target_date|date:'Y-m-d' }}" class="btn btn-danger fw-bold px-3 py-2 shadow-sm text-nowrap">
+          <i class="bi bi-plus-circle me-1"></i>Configure Daily Menu Item
+        </a>
+      </div>
+    {% endif %}
+  </div>
+
+  {# ── Left Side: Catering Estimate & Live Activity Feed (4 cols) ─────── #}
+  <div class="col-lg-5 col-xl-4">
+    {# Today's Catering Estimate #}
+    <div class="card mb-3 shadow-sm" id="cardEstimate">
+      <div class="card-header bg-surface-2 py-2">
+        <h2 class="card-title text-sm"><i class="bi bi-bar-chart-line-fill me-2 text-warning"></i>Catering Estimate & Progress</h2>
+      </div>
+      <div class="card-body" id="estimateCounter"
+           hx-get="{% url 'tokens:estimate_counter' %}"
+           hx-trigger="every 15s"
+           hx-swap="innerHTML">
+        {% include "tokens/partials/estimate_counter.html" %}
+      </div>
+    </div>
+
+    {# Recent Activity Feed #}
+    <div class="card shadow-sm" id="cardRecentTokens">
+      <div class="card-header bg-surface-2 py-2 d-flex justify-content-between align-items-center">
+        <h2 class="card-title text-sm"><i class="bi bi-clock-history me-2 text-primary"></i>Live Issuance Feed</h2>
+        <span class="badge bg-secondary text-xs"><i class="bi bi-arrow-repeat me-1"></i>Auto-Refresh</span>
+      </div>
+      <div class="card-body p-0" id="recentActivity"
+           hx-get="{% url 'tokens:recent_activity' %}"
+           hx-trigger="every 15s"
+           hx-swap="innerHTML">
+        {% include "tokens/partials/recent_activity.html" %}
+      </div>
+    </div>
+  </div>
+
+  {# ── Right Side: Member Search & Token Form (8 cols) ───────────────── #}
+  <div class="col-lg-7 col-xl-8">
+    <div class="card shadow-sm" id="cardIssueForm">
+      <div class="card-header bg-surface-2 py-2.5">
+        <h2 class="card-title"><i class="bi bi-person-check-fill me-2 text-primary"></i>Member Verification & Issuance Console</h2>
+      </div>
+      <div class="card-body p-4">
+
+        {# Live Search Bar #}
+        <div class="position-relative mb-4">
+          <label class="form-label fw-bold text-dark mb-1.5">Search Employee Member (Name / P-No / Department)</label>
+          <div class="input-group input-group-lg">
+            <span class="input-group-text bg-surface-2 border-end-0"><i class="bi bi-search text-warning fs-5"></i></span>
+            <input type="text"
+                   x-model="searchQuery"
+                   @focus="showDropdown = true"
+                   @input="showDropdown = true"
+                   placeholder="Type P-Number or Name (e.g. P-1001 or Ali)…"
+                   class="form-control form-control-lg border-start-0 fw-semibold"
+                   id="employeeSearchInput">
+            <button class="btn btn-outline-secondary" type="button" x-show="searchQuery || selectedEmp" @click="clearSelected()">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+
+          {# Dropdown Suggestions List #}
+          <div class="emp-search-dropdown"
+               x-show="showDropdown && filteredEmployees.length > 0"
+               @mousedown.prevent
+               x-cloak>
+            <template x-for="emp in filteredEmployees" :key="emp.id">
+              <div class="emp-suggestion-item d-flex align-items-center justify-content-between" @click="selectEmployee(emp)">
+                <div class="d-flex align-items-center gap-3">
+                  <template x-if="emp.photo_url">
+                    <img :src="emp.photo_url" class="rounded-circle" style="width:38px;height:38px;object-fit:cover;">
+                  </template>
+                  <template x-if="!emp.photo_url">
+                    <div class="rounded-circle bg-warning text-dark fw-bold d-flex align-items-center justify-content-center" style="width:38px;height:38px;font-size:0.9rem;" x-text="emp.initials"></div>
+                  </template>
+                  <div>
+                    <div class="fw-bold text-dark" x-text="emp.full_name"></div>
+                    <div class="small text-muted">
+                      <span class="badge bg-dark text-white me-1" x-text="emp.pno"></span>
+                      <span x-text="emp.designation"></span> &bull; <span x-text="emp.department"></span>
+                    </div>
+                  </div>
+                </div>
+                <div class="d-flex align-items-center gap-1">
+                  <template x-if="emp.has_close_request">
+                    <span class="badge bg-danger text-white">Close Requested Today</span>
+                  </template>
+                  <template x-if="emp.has_open_request">
+                    <span class="badge bg-success text-white" x-text="`Open Req (${emp.open_request_details ? emp.open_request_details.requested_token_qty : 1} Tokens)`"></span>
+                  </template>
+                  <span class="badge" :class="emp.issued_today ? 'bg-danger text-white' : (emp.membership_code === 'temp_close' ? 'bg-warning text-dark' : 'bg-success')" x-text="emp.issued_today ? '✓ Issued Today' : emp.membership_type"></span>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        {# ── Premium Employee Stats Card (Shown when employee is selected) ── #}
+        <template x-if="selectedEmp">
+          <div class="premium-stats-card mb-4" :class="{'issued-already': selectedEmp.issued_today}">
+            <div class="d-flex align-items-start justify-content-between gap-3">
+              <div class="d-flex align-items-center gap-3">
+                <template x-if="selectedEmp.photo_url">
+                  <img :src="selectedEmp.photo_url" class="emp-photo-avatar">
+                </template>
+                <template x-if="!selectedEmp.photo_url">
+                  <div class="emp-photo-avatar-placeholder" x-text="selectedEmp.initials"></div>
+                </template>
+                <div>
+                  <h3 class="fw-bold text-dark mb-1" x-text="selectedEmp.full_name"></h3>
+                  <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                    <span class="badge bg-dark text-white px-2 py-1 fs-6" x-text="selectedEmp.pno"></span>
+                    <span class="badge bg-primary text-white px-2 py-1" x-text="selectedEmp.membership_type"></span>
+                    <template x-if="selectedEmp.has_close_request">
+                      <span class="badge bg-danger text-white px-2 py-1"><i class="bi bi-slash-circle me-1"></i>Close Requested Today</span>
+                    </template>
+                    <template x-if="selectedEmp.has_open_request">
+                      <span class="badge bg-success text-white px-2 py-1" x-text="`<i class='bi bi-check-circle me-1'></i>Open Request (${selectedEmp.open_request_details ? selectedEmp.open_request_details.requested_token_qty : 1} Tokens)`"></span>
+                    </template>
+                    <template x-if="selectedEmp.issued_today">
+                      <span class="badge bg-danger text-white px-2 py-1"><i class="bi bi-exclamation-circle me-1"></i>Already Issued Today</span>
+                    </template>
+                  </div>
+                  <div class="text-muted small">
+                    <i class="bi bi-briefcase me-1 text-primary"></i><span x-text="selectedEmp.designation"></span> &bull;
+                    <i class="bi bi-building me-1 text-info"></i><span x-text="selectedEmp.department"></span>
+                  </div>
+                </div>
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-danger" @click="clearSelected()" title="Deselect Member">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+
+            {# Already Issued Today Notice & Update Override Switch #}
+            <template x-if="selectedEmp && selectedEmp.issued_today">
+              <div class="alert alert-warning border border-warning-subtle mt-3 mb-0 py-2.5 px-3 d-flex align-items-center justify-content-between">
+                <div class="small fw-bold text-dark d-flex align-items-center gap-2">
+                  <i class="bi bi-exclamation-triangle-fill text-warning fs-5 flex-shrink-0"></i>
+                  <div>
+                    Token Already Issued Today! <span x-text="selectedEmp.full_name"></span> received Token #<span x-text="selectedEmp.existing_token ? selectedEmp.existing_token.token_number : ''"></span>.
+                    <div class="text-muted fw-normal" style="font-size:0.75rem;">Authorize Update Override to edit quantities for this record without creating a new entry.</div>
+                  </div>
+                </div>
+                <div class="form-check form-switch mb-0">
+                  <input class="form-check-input" type="checkbox" role="switch" id="id_already_issued_override" x-model="rotiOverride" @change="toggleRotiOverride()">
+                  <label class="form-check-label fw-bold text-dark small" for="id_already_issued_override">Update Override</label>
+                </div>
+              </div>
+            </template>
+
+            {# Open Request Active Notice #}
+            <template x-if="selectedEmp && selectedEmp.has_open_request && !selectedEmp.issued_today">
+              <div class="alert alert-success border border-success-subtle mt-3 mb-0 py-2 px-3">
+                <div class="small fw-bold text-success d-flex align-items-center gap-2">
+                  <i class="bi bi-check-circle-fill text-success fs-5 flex-shrink-0"></i>
+                  <div>
+                    Open Request Active for Today! <span x-text="selectedEmp.full_name"></span> requested OPEN token status
+                    (Start: <span x-text="selectedEmp.open_request_details ? selectedEmp.open_request_details.start_date : ''"></span> &bull;
+                    End: <span x-text="selectedEmp.open_request_details ? selectedEmp.open_request_details.end_date : ''"></span>).
+                    <div class="text-muted fw-normal" style="font-size:0.75rem;">Automatically prefilled <span class="fw-bold text-dark" x-text="selectedEmp.open_request_details ? selectedEmp.open_request_details.requested_token_qty : 1"></span> Token(s) as requested.</div>
+                  </div>
+                </div>
+              </div>
+            </template>
+
+            {# Close Request Active Notice & Override Switch #}
+            <template x-if="selectedEmp && selectedEmp.has_close_request && !selectedEmp.issued_today">
+              <div class="alert alert-danger border border-danger-subtle mt-3 mb-0 py-2 px-3 d-flex align-items-center justify-content-between">
+                <div class="small fw-semibold text-danger d-flex align-items-center gap-2">
+                  <i class="bi bi-slash-circle-fill text-danger fs-5 flex-shrink-0"></i>
+                  <div>
+                    Close Request Active for Today! <span x-text="selectedEmp.full_name"></span> requested CLOSE
+                    (Start: <span x-text="selectedEmp.close_request_details ? selectedEmp.close_request_details.start_date : ''"></span> &bull;
+                    End: <span x-text="selectedEmp.close_request_details ? selectedEmp.close_request_details.end_date : ''"></span>).
+                    <div class="text-muted fw-normal" style="font-size:0.75rem;">Member requested no tokens for these dates. Authorize staff override to issue.</div>
+                  </div>
+                </div>
+                <div class="form-check form-switch mb-0">
+                  <input class="form-check-input" type="checkbox" role="switch" id="id_close_req_override" x-model="rotiOverride" @change="toggleRotiOverride()">
+                  <label class="form-check-label fw-bold text-dark small" for="id_close_req_override">Override</label>
+                </div>
+              </div>
+            </template>
+
+            {# Roti-Open Staff Override Notice (only if not issued today and no close request) #}
+            <template x-if="isRotiOpen && !selectedEmp.issued_today && !selectedEmp.has_close_request">
+              <div class="alert alert-warning border border-warning-subtle mt-3 mb-0 py-2 px-3 d-flex align-items-center justify-content-between">
+                <div class="small fw-semibold text-dark">
+                  <i class="bi bi-exclamation-triangle-fill me-1.5 text-warning"></i>
+                  Roti-Open Member: Authorize staff override to issue full lunch token / sweet.
+                </div>
+                <div class="form-check form-switch mb-0">
+                  <input class="form-check-input" type="checkbox" role="switch" id="id_roti_override_check" x-model="rotiOverride" @change="toggleRotiOverride()">
+                  <label class="form-check-label fw-bold text-dark small" for="id_roti_override_check">Override</label>
+                </div>
+              </div>
+            </template>
+
+            {# Temp Close Staff Override Notice #}
+            <template x-if="selectedEmp && selectedEmp.membership_code === 'temp_close' && !selectedEmp.has_close_request && !selectedEmp.issued_today">
+              <div class="alert alert-danger border border-danger-subtle mt-3 mb-0 py-2 px-3 d-flex align-items-center justify-content-between">
+                <div class="small fw-semibold text-danger">
+                  <i class="bi bi-slash-circle-fill me-1.5 text-danger"></i>
+                  Temp Close Member: Account status is set to Temp Close. Authorize override to issue token.
+                </div>
+                <div class="form-check form-switch mb-0">
+                  <input class="form-check-input" type="checkbox" role="switch" id="id_close_override_check" x-model="rotiOverride" @change="toggleRotiOverride()">
+                  <label class="form-check-label fw-bold text-dark small" for="id_close_override_check">Override</label>
+                </div>
+              </div>
+            </template>
+          </div>
+        </template>
+
+        {# Form Submission with Stepper Controls #}
+        <form method="post" action="{% url 'tokens:issue' %}" id="tokenIssueForm" data-submit-once>
+          {% csrf_token %}
+          <input type="hidden" name="date" value="{{ target_date|date:'Y-m-d' }}">
+          <input type="hidden" name="employee" :value="selectedEmp ? selectedEmp.id : ''" required>
+          <input type="hidden" name="roti_override" :value="rotiOverride ? 'on' : ''">
+
+          <div class="row g-3">
+            {# 1. Token Quantity Stepper #}
+            <div class="col-md-4">
+              <label for="id_token_qty" class="form-label fw-semibold text-dark">Token Qty</label>
+              <div class="input-group">
+                <button class="btn btn-outline-secondary" type="button" @click="tokenQty = Math.max(0, tokenQty - 1)" :disabled="isTokenQtyDisabled">-</button>
+                <input type="number" name="token_qty" id="id_token_qty"
+                       class="form-control text-center fw-bold fs-6"
+                       min="0" max="3"
+                       x-model.number="tokenQty"
+                       :disabled="isTokenQtyDisabled"
+                       @input="tokenQty = Math.max(0, Math.min(3, parseInt($event.target.value) || 0))">
+                <button class="btn btn-outline-secondary" type="button" @click="tokenQty = Math.min(3, tokenQty + 1)" :disabled="isTokenQtyDisabled">+</button>
+              </div>
+            </div>
+
+            {# 2. Extra Roti Quantity Stepper #}
+            <div class="col-md-4">
+              <label for="id_extra_roti" class="form-label fw-semibold text-dark">Extra Roti Qty</label>
+              <div class="input-group">
+                <button class="btn btn-outline-secondary" type="button" @click="extraRoti = Math.max(0, extraRoti - 1)" :disabled="isExtraRotiDisabled">-</button>
+                <input type="number" name="extra_roti_qty" id="id_extra_roti"
+                       class="form-control text-center fw-bold fs-6"
+                       min="0" max="10"
+                       x-model.number="extraRoti"
+                       :disabled="isExtraRotiDisabled"
+                       @input="extraRoti = Math.max(0, Math.min(10, parseInt($event.target.value) || 0))">
+                <button class="btn btn-outline-secondary" type="button" @click="extraRoti = Math.min(10, extraRoti + 1)" :disabled="isExtraRotiDisabled">+</button>
+              </div>
+            </div>
+
+            {# 3. Extra Sweet Quantity Stepper (Disabled for Roti-Open & Temp Close without Override) #}
+            <div class="col-md-4">
+              <label for="id_extra_sweet" class="form-label fw-semibold text-dark">Extra Sweet Qty</label>
+              <div class="input-group">
+                <button class="btn btn-outline-secondary" type="button" @click="extraSweet = Math.max(0, extraSweet - 1)" :disabled="isExtraSweetDisabled">-</button>
+                <input type="number" name="extra_sweet_qty" id="id_extra_sweet"
+                       class="form-control text-center fw-bold fs-6"
+                       min="0" max="10"
+                       x-model.number="extraSweet"
+                       :disabled="isExtraSweetDisabled"
+                       @input="extraSweet = Math.max(0, Math.min(10, parseInt($event.target.value) || 0))">
+                <button class="btn btn-outline-secondary" type="button" @click="extraSweet = Math.min(10, extraSweet + 1)" :disabled="isExtraSweetDisabled">+</button>
+              </div>
+            </div>
+
+            {# Submit Button #}
+            <div class="col-12 mt-4">
+              <button type="submit"
+                      class="btn btn-lg w-100 py-3 font-monospace fw-bold fs-6 shadow-sm"
+                      :class="(selectedEmp && selectedEmp.issued_today && rotiOverride) ? 'btn-warning text-dark' : 'btn-success text-white'"
+                      :disabled="(!isMenuConfigured && !rotiOverride) || !selectedEmp || (selectedEmp.issued_today && !rotiOverride) || (isRotiOpen && !rotiOverride && (tokenQty > 0 || extraSweet > 0)) || (isTempCloseOrClosedToday && !rotiOverride) || (tokenQty === 0 && extraRoti === 0 && extraSweet === 0)">
+                <template x-if="selectedEmp && selectedEmp.issued_today && rotiOverride">
+                  <i class="bi bi-pencil-square me-2"></i>
+                </template>
+                <template x-if="!selectedEmp || !selectedEmp.issued_today || !rotiOverride">
+                  <i class="bi bi-patch-check-fill me-2"></i>
+                </template>
+                <span x-text="issueButtonText"></span>
+              </button>
+            </div>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  <script>
+    function tokenIssueApp() {
+      const dataEl = document.getElementById('employees-json-data');
+      const employees = dataEl ? JSON.parse(dataEl.textContent) : [];
+
+      return {
+        searchQuery: '',
+        showDropdown: false,
+        selectedEmp: null,
+        rotiOverride: false,
+        tokenQty: 1,
+        extraRoti: 0,
+        extraSweet: 0,
+
+        get filteredEmployees() {
+          if (!this.searchQuery.trim()) return employees;
+          const q = this.searchQuery.toLowerCase().trim();
+          return employees.filter(emp =>
+            emp.full_name.toLowerCase().includes(q) ||
+            emp.pno.toLowerCase().includes(q) ||
+            emp.department.toLowerCase().includes(q)
+          );
+        },
+
+        get isRotiOpen() {
+          return this.selectedEmp && this.selectedEmp.membership_code === 'roti_open';
+        },
+
+        get isTempCloseOrClosedToday() {
+          return this.selectedEmp && (this.selectedEmp.membership_code === 'temp_close' || this.selectedEmp.has_close_request);
+        },
+
+        get isAlreadyIssued() {
+          return this.selectedEmp && this.selectedEmp.issued_today;
+        },
+
+        get isTokenQtyDisabled() {
+          if (!this.selectedEmp) return true;
+          if (this.isAlreadyIssued && !this.rotiOverride) return true;
+          if (this.isRotiOpen && !this.rotiOverride) return true;
+          if (this.isTempCloseOrClosedToday && !this.rotiOverride) return true;
+          return false;
+        },
+
+        get isExtraSweetDisabled() {
+          if (!this.selectedEmp) return true;
+          if (this.isAlreadyIssued && !this.rotiOverride) return true;
+          if (this.isRotiOpen && !this.rotiOverride) return true;
+          if (this.isTempCloseOrClosedToday && !this.rotiOverride) return true;
+          return false;
+        },
+
+        get isExtraRotiDisabled() {
+          if (!this.selectedEmp) return true;
+          if (this.isAlreadyIssued && !this.rotiOverride) return true;
+          if (this.isTempCloseOrClosedToday && !this.rotiOverride) return true;
+          return false;
+        },
+
+        toggleRotiOverride() {
+          if (this.rotiOverride) {
+            if (this.isAlreadyIssued && this.selectedEmp.existing_token) {
+              const t = this.selectedEmp.existing_token;
+              this.tokenQty = t.token_qty;
+              this.extraRoti = t.extra_roti_qty;
+              this.extraSweet = t.extra_sweet_qty;
+            } else {
+              this.tokenQty = 1;
+            }
+          } else {
+            if (this.isAlreadyIssued) {
+              if (this.selectedEmp.existing_token) {
+                const t = this.selectedEmp.existing_token;
+                this.tokenQty = t.token_qty;
+                this.extraRoti = t.extra_roti_qty;
+                this.extraSweet = t.extra_sweet_qty;
+              }
+            } else if (this.isRotiOpen) {
+              this.tokenQty = 0;
+              this.extraRoti = 1;
+              this.extraSweet = 0;
+            } else if (this.isTempCloseOrClosedToday) {
+              this.tokenQty = 0;
+              this.extraRoti = 0;
+              this.extraSweet = 0;
+            }
+          }
+        },
+
+        get isMenuConfigured() {
+          return {{ is_menu_configured|yesno:"true,false" }};
+        },
+
+        get issueButtonText() {
+          if (!this.isMenuConfigured && !this.rotiOverride) return 'Lunch Menu Not Configured for Selected Date (Configure Menu or Override)';
+          if (!this.selectedEmp) return 'Select Member Above to Issue Token';
+          if (this.isAlreadyIssued && !this.rotiOverride) return 'Token Already Issued Today (Enable Override to Edit)';
+
+          if (this.isRotiOpen && !this.rotiOverride && (this.tokenQty > 0 || this.extraSweet > 0)) {
+            return 'Roti-Open Member (Authorize Override to Issue Lunch Tokens or Sweet)';
+          }
+
+          if (this.isTempCloseOrClosedToday && !this.rotiOverride && this.tokenQty === 0 && this.extraRoti === 0 && this.extraSweet === 0) {
+            return 'Temp Close / Closed Today (Authorize Override to Issue Token)';
+          }
+
+          let prefix = (this.isAlreadyIssued && this.rotiOverride) ? 'Update & Override' : 'Issue';
+          let parts = [];
+          if (this.tokenQty > 0) {
+            parts.push(`${this.tokenQty} Lunch Token${this.tokenQty > 1 ? 's' : ''}`);
+          }
+
+          let extras = [];
+          if (this.extraRoti > 0) extras.push(`+${this.extraRoti} Roti`);
+          if (this.extraSweet > 0) extras.push(`+${this.extraSweet} Sweet`);
+
+          if (extras.length > 0) {
+            parts.push(`(${extras.join(', ')})`);
+          }
+
+          if (parts.length === 0) {
+            return 'Select Quantities Above';
+          }
+
+          return prefix + ' ' + parts.join(' ');
+        },
+
+        selectEmployee(emp) {
+          this.selectedEmp = emp;
+          this.searchQuery = `${emp.full_name} (${emp.pno})`;
+          this.showDropdown = false;
+          this.rotiOverride = false;
+
+          if (emp.issued_today && emp.existing_token) {
+            this.tokenQty = emp.existing_token.token_qty;
+            this.extraRoti = emp.existing_token.extra_roti_qty;
+            this.extraSweet = emp.existing_token.extra_sweet_qty;
+          } else if (emp.has_open_request && emp.open_request_details) {
+            this.tokenQty = emp.open_request_details.requested_token_qty || 1;
+            this.extraRoti = 0;
+            this.extraSweet = 0;
+          } else if (emp.membership_code === 'roti_open') {
+            this.tokenQty = 0;
+            this.extraRoti = 1;
+            this.extraSweet = 0;
+          } else if (emp.membership_code === 'temp_close' || emp.has_close_request) {
+            this.tokenQty = 0;
+            this.extraRoti = 0;
+            this.extraSweet = 0;
+          } else {
+            this.tokenQty = 1;
+            this.extraRoti = 0;
+            this.extraSweet = 0;
+          }
+        },
+
+        clearSelected() {
+          this.selectedEmp = null;
+          this.searchQuery = '';
+          this.showDropdown = false;
+          this.rotiOverride = false;
+          this.tokenQty = 1;
+          this.extraRoti = 0;
+          this.extraSweet = 0;
+        }
+      };
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const receiptTokenId = urlParams.get('receipt_token');
+      if (receiptTokenId) {
+        window.open(`/tokens/receipt/${receiptTokenId}/`, '_blank');
+        const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+        window.history.replaceState({path: cleanUrl}, '', cleanUrl);
+      }
+    });
+  </script>
+{% endblock %}

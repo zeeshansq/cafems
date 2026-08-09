@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Daily Closing Report | {{ site_name }}{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'tokens/css/daily_closing_report.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="row g-4" id="dailyReportApp">
+
+  {# ── Header Bar ─────────────────────────────────────────────────────── #}
+  <div class="col-12">
+    <div class="page-header mb-0">
+      <div>
+        <h1 class="page-header-title">
+          <i class="bi bi-journal-check me-2 text-warning"></i>Daily Closing Exception & Charge Report
+        </h1>
+        <p class="page-header-subtitle">
+          Date: <strong>{{ report_date|date:"l, F j, Y" }}</strong> &bull; Reconcile Unaccounted Members & Charged Tokens
+        </p>
+      </div>
+      <div class="d-flex gap-2">
+        <a href="{% url 'tokens:issue' %}" class="btn btn-outline-secondary" id="btnBackIssue">
+          <i class="bi bi-arrow-left me-1"></i>Issue Counter Tokens
+        </a>
+      </div>
+    </div>
+  </div>
+
+  {# ── Date Picker Filter Bar ────────────────────────────────────────── #}
+  <div class="col-12">
+    <div class="card shadow-sm" id="cardReportDate">
+      <div class="card-body py-2.5 px-3">
+        <form method="get" class="d-flex align-items-center gap-3 flex-wrap">
+          <label class="fw-bold small text-dark mb-0"><i class="bi bi-calendar3 me-1.5 text-primary"></i>Select Report Date:</label>
+          {% if is_admin %}
+            <input type="date" name="date" class="form-control form-control-sm font-monospace fw-semibold" style="max-width:220px;" value="{{ report_date|date:'Y-m-d' }}" onchange="this.form.submit()">
+            <button type="submit" class="btn btn-sm btn-primary">Update View</button>
+            {% if report_date != today %}
+              <a href="{% url 'tokens:daily_report' %}" class="btn btn-sm btn-outline-secondary">Reset to Today</a>
+            {% endif %}
+          {% else %}
+            <input type="date" class="form-control form-control-sm font-monospace fw-semibold" style="max-width:220px;" value="{{ report_date|date:'Y-m-d' }}" disabled>
+            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2.5 py-1">
+              <i class="bi bi-lock-fill me-1"></i>Staff View: Locked to Today
+            </span>
+          {% endif %}
+        </form>
+      </div>
+    </div>
+  </div>
+
+  {# ── Executive Summary Stat Cards ────────────────────────────────────── #}
+  <div class="col-md-4">
+    <div class="stat-card border-start border-4 border-info">
+      <div class="stat-icon bg-info-subtle text-info"><i class="bi bi-people-fill"></i></div>
+      <div>
+        <div class="stat-value text-dark">{{ expected_count }}</div>
+        <div class="stat-label">Expected Members Today</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="stat-card border-start border-4 border-success">
+      <div class="stat-icon bg-success-subtle text-success"><i class="bi bi-check-circle-fill"></i></div>
+      <div>
+        <div class="stat-value text-success">{{ issued_count }}</div>
+        <div class="stat-label">Accounted / Charged Tokens</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="stat-card border-start border-4 border-danger">
+      <div class="stat-icon bg-danger-subtle text-danger"><i class="bi bi-exclamation-triangle-fill"></i></div>
+      <div>
+        <div class="stat-value text-danger">{{ missing_count }}</div>
+        <div class="stat-label">Unaccounted Members</div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Unaccounted Members (Requires Retroactive Charge) ──────────────── #}
+  <div class="col-12">
+    <div class="card shadow-sm" id="cardMissingEmployees">
+      <div class="card-header bg-surface-2 py-2.5 d-flex justify-content-between align-items-center">
+        <h2 class="card-title text-danger fs-6 mb-0">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>Unaccounted Members (No token & no close request today)
+        </h2>
+        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1 fw-bold">{{ missing_count }} Missing</span>
+      </div>
+      <div class="card-body p-0">
+        {% if missing_employees %}
+          <div class="table-responsive">
+            <table class="table align-middle mb-0">
+              <thead class="bg-surface-2 text-uppercase text-muted" style="font-size:0.75rem;">
+                <tr>
+                  <th class="ps-3">Member Name</th>
+                  <th>P-No</th>
+                  <th>Department</th>
+                  <th>Membership Type</th>
+                  <th class="text-end pe-3">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for emp in missing_employees %}
+                  <tr class="border-bottom">
+                    <td class="ps-3 py-2.5">
+                      <div class="d-flex align-items-center gap-2.5">
+                        {% if emp.photo %}
+                          <img src="{{ emp.photo.url }}" alt="{{ emp.full_name }}" class="rounded-circle border" style="width:36px;height:36px;object-fit:cover;">
+                        {% else %}
+                          <div class="rounded-circle bg-warning text-dark fw-bold d-flex align-items-center justify-content-center" style="width:36px;height:36px;font-size:0.85rem;">
+                            {{ emp.full_name|slice:":2"|upper }}
+                          </div>
+                        {% endif %}
+                        <div>
+                          <div class="fw-bold text-dark">{{ emp.full_name }}</div>
+                          <div class="text-muted small" style="font-size:0.75rem;">{{ emp.designation|default:"Staff Member" }}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td><span class="badge bg-dark text-white">{{ emp.pno|default:"—" }}</span></td>
+                    <td>{{ emp.department|default:"—" }}</td>
+                    <td><span class="badge bg-primary text-white">{{ emp.get_membership_type_display }}</span></td>
+                    <td class="text-end pe-3">
+                      {% if is_admin or report_date == today %}
+                        <a href="{% url 'tokens:charge_token' emp.pk %}?date={{ report_date|date:'Y-m-d' }}"
+                           class="btn btn-sm btn-danger fw-bold shadow-sm"
+                           onclick="return confirm('Retroactively charge a lunch token for {{ emp.full_name }} on {{ report_date }}?')">
+                          <i class="bi bi-plus-circle me-1"></i>Charge Token Now
+                        </a>
+                      {% else %}
+                        <span class="badge bg-secondary opacity-75">Staff Current Date Only</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="empty-state py-4 text-center text-success">
+            <i class="bi bi-check-circle-fill fs-2 text-success mb-1"></i>
+            <div class="fw-bold text-dark">All members accounted for on {{ report_date|date:"F j, Y" }}!</div>
+            <div class="text-muted small">No uncharged or missing members remaining.</div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# ── Accounted & Charged Tokens Roster ──────────────────────────────── #}
+  <div class="col-12">
+    <div class="card shadow-sm" id="cardChargedTokens">
+      <div class="card-header bg-surface-2 py-2.5 d-flex justify-content-between align-items-center">
+        <h2 class="card-title text-success fs-6 mb-0">
+          <i class="bi bi-check-circle-fill me-2"></i>Accounted & Charged Tokens Roster ({{ issued_count }})
+        </h2>
+        <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 fw-bold">✓ Verified</span>
+      </div>
+      <div class="card-body p-0">
+        {% if charged_tokens %}
+          <div class="table-responsive">
+            <table class="table align-middle mb-0">
+              <thead class="bg-surface-2 text-uppercase text-muted" style="font-size:0.75rem;">
+                <tr>
+                  <th class="ps-3">Member Name</th>
+                  <th>P-No</th>
+                  <th class="text-center">Token #</th>
+                  <th class="text-center">Token Qty</th>
+                  <th class="text-center">Extra Roti</th>
+                  <th class="text-center">Extra Sweet</th>
+                  <th>Charge Status</th>
+                  <th class="text-end pe-3">Charged Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for tok in charged_tokens %}
+                  <tr class="border-bottom">
+                    <td class="ps-3 py-2.5">
+                      <div class="d-flex align-items-center gap-2.5">
+                        {% if tok.employee.photo %}
+                          <img src="{{ tok.employee.photo.url }}" alt="{{ tok.employee.full_name }}" class="rounded-circle border" style="width:36px;height:36px;object-fit:cover;">
+                        {% else %}
+                          <div class="rounded-circle bg-warning text-dark fw-bold d-flex align-items-center justify-content-center" style="width:36px;height:36px;font-size:0.85rem;">
+                            {{ tok.employee.full_name|slice:":2"|upper }}
+                          </div>
+                        {% endif %}
+                        <div>
+                          <div class="fw-bold text-dark">{{ tok.employee.full_name }}</div>
+                          <div class="text-muted small" style="font-size:0.75rem;">{{ tok.employee.department|default:"General" }}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td><span class="badge bg-dark text-white">{{ tok.employee.pno|default:"—" }}</span></td>
+                    <td class="text-center"><span class="badge bg-primary font-monospace">#{{ tok.token_number }}</span></td>
+                    <td class="text-center"><span class="badge bg-success font-monospace fs-6">{{ tok.token_qty }}</span></td>
+                    <td class="text-center">
+                      {% if tok.extra_roti_qty > 0 %}
+                        <span class="badge bg-secondary">+{{ tok.extra_roti_qty }}</span>
+                      {% else %}
+                        <span class="text-muted">—</span>
+                      {% endif %}
+                    </td>
+                    <td class="text-center">
+                      {% if tok.extra_sweet_qty > 0 %}
+                        <span class="badge bg-warning text-dark">+{{ tok.extra_sweet_qty }}</span>
+                      {% else %}
+                        <span class="text-muted">—</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if tok.is_retroactive %}
+                        <span class="badge px-2 py-1 fw-bold" style="background:#f3e8ff;color:#7e22ce;border:1px solid #d8b4fe;">
+                          <i class="bi bi-lightning-fill me-1"></i>Retroactive Charge
+                        </span>
+                      {% else %}
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                          <i class="bi bi-check-circle me-1"></i>Counter Issuance
+                        </span>
+                      {% endif %}
+                      {% if tok.roti_override %}
+                        <span class="badge bg-warning-subtle text-dark border border-warning-subtle ms-1">Override</span>
+                      {% endif %}
+                    </td>
+                    <td class="text-end pe-3">
+                      <div class="d-flex align-items-center justify-content-end gap-2">
+                        <span class="text-muted small"><i class="bi bi-clock me-1"></i>{{ tok.issue_time|date:"g:i A" }}</span>
+                        <a href="{% url 'tokens:token_receipt' tok.id %}" target="_blank" class="btn btn-sm btn-outline-primary fw-bold px-2 py-0.5" title="Print 80mm Lunch Token Receipt">
+                          <i class="bi bi-printer me-1"></i>Receipt
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="empty-state py-4 text-center text-muted">
+            <i class="bi bi-ticket-perforated fs-2 opacity-50 mb-1"></i>
+            <div class="text-sm">No tokens charged or issued for {{ report_date|date:"F j, Y" }} yet.</div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'tokens/js/daily_closing_report.js' %}"></script>
+{% endblock %}

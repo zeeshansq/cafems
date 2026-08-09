@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Request Details | {{ site_name }}{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'requests_app/css/request_detail.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">Request #{{ req.id }}</h1>
+    <p class="page-header-subtitle">Submitted by {{ req.employee.full_name }}</p>
+  </div>
+  <a href="{% url 'requests_app:list' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Back to List
+  </a>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-7">
+    <div class="card mb-4" id="cardDetails">
+      <div class="card-header"><h2 class="card-title">Request Overview</h2></div>
+      <div class="card-body">
+        <table class="table table-borderless mb-0">
+          <tr><td class="text-muted" style="width:160px;">Employee:</td><td><strong>{{ req.employee.full_name }}</strong> ({{ req.employee.pno }})</td></tr>
+          <tr><td class="text-muted">Type:</td><td><span class="badge {% if req.request_type == 'open' %}bg-success{% else %}bg-danger{% endif %}">{{ req.get_request_type_display }}</span></td></tr>
+          <tr><td class="text-muted">Start Date:</td><td><strong>{{ req.date_range_start }}</strong></td></tr>
+          <tr><td class="text-muted">End Date:</td><td><strong>{{ req.date_range_end }}</strong></td></tr>
+          <tr><td class="text-muted">Reason:</td><td>{{ req.reason|default:"No reason provided." }}</td></tr>
+          <tr><td class="text-muted">Submitted At:</td><td>{{ req.submitted_at|date:"F j, Y g:i A" }}</td></tr>
+          <tr><td class="text-muted">Current Status:</td><td><span class="badge-pill {% if req.status == 'acknowledged' %}badge-active{% elif req.status == 'pending' %}badge-pending{% else %}badge-inactive{% endif %}">{{ req.get_status_display }}</span></td></tr>
+          {% if req.acknowledged_by %}
+          <tr><td class="text-muted">Processed By:</td><td>{{ req.acknowledged_by.display_name }} at {{ req.acknowledged_at|date:"M j, g:i A" }}</td></tr>
+          {% endif %}
+          {% if req.rejection_reason %}
+          <tr><td class="text-muted">Rejection Reason:</td><td class="text-danger">{{ req.rejection_reason }}</td></tr>
+          {% endif %}
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-5">
+    {% if req.status == 'pending' %}
+    <div class="card mb-4" id="cardAck">
+      <div class="card-header"><h2 class="card-title text-success"><i class="bi bi-check-circle me-2"></i>Acknowledge Request</h2></div>
+      <div class="card-body">
+        <p class="small text-muted mb-3">Acknowledging will update the employee's cafeteria membership status immediately.</p>
+        <form method="post" action="{% url 'requests_app:acknowledge' req.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-success w-100 fw-bold">Confirm Acknowledgment</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card" id="cardReject">
+      <div class="card-header"><h2 class="card-title text-danger"><i class="bi bi-x-circle me-2"></i>Reject Request</h2></div>
+      <div class="card-body">
+        <form method="post" action="{% url 'requests_app:reject' req.pk %}">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label small">Rejection Reason</label>
+            <textarea name="rejection_reason" class="form-control" rows="2" placeholder="Optional reason…" required></textarea>
+          </div>
+          <button type="submit" class="btn btn-outline-danger w-100 fw-bold">Reject Request</button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'requests_app/js/request_detail.js' %}"></script>
+{% endblock %}

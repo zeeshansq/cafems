@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if object %}Edit Daily Menu Entry{% else %}Set Daily Menu Entry & Estimate{% endif %} | {{ site_name }}{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'menu/css/daily_estimate_form.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+  <!-- Page Header -->
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+      <h2 class="h3 mb-0 fw-bold card-title-text">
+        <i class="bi bi-journal-plus theme-text-primary me-2"></i>
+        {% if object %}Edit Daily Menu Entry ({{ object.date }}){% else %}New Daily Menu Entry & Costing{% endif %}
+      </h2>
+      <p class="text-muted mb-0 small">Record today's dish, cook, sweet, roti options, expense, and auto-calculate token unit cost.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'menu:daily_estimate' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-list-ul me-1"></i> View Entries List
+      </a>
+      <a href="{% url 'menu:costing_dashboard' %}" class="btn btn-outline-primary">
+        <i class="bi bi-speedometer2 me-1"></i> Costing Dashboard
+      </a>
+    </div>
+  </div>
+
+  <form method="post" id="dailyEntryForm">
+    {% csrf_token %}
+    <div class="row g-4">
+
+      <!-- Left Column: Menu Setup & Cook Selection -->
+      <div class="col-lg-6">
+        <div class="card form-section-card border-0 shadow-sm rounded-3 h-100">
+          <div class="card-header form-section-header py-3">
+            <h5 class="card-title mb-0 fw-bold card-title-text">
+              <i class="bi bi-egg-fried text-warning me-2"></i>1. Daily Menu Setup
+            </h5>
+          </div>
+          <div class="card-body p-4">
+
+            <div class="mb-3">
+              <label class="form-label fw-bold text-muted">Date <span class="text-danger">*</span></label>
+              {{ form.date }}
+              {% if form.date.errors %}<div class="text-danger small">{{ form.date.errors }}</div>{% endif %}
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-bold text-muted">Today's Special Dish <span class="text-danger">*</span></label>
+              {{ form.dish_select }}
+              {{ form.dish_name }}
+              {% if form.dish_name.errors %}<div class="text-danger small">{{ form.dish_name.errors }}</div>{% endif %}
+              <div class="form-text">Choose from pre-configured dish catalog above or type custom dish name.</div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-bold text-muted">Cook / Chef Name</label>
+              {{ form.cook }}
+              {% if form.cook.errors %}<div class="text-danger small">{{ form.cook.errors }}</div>{% endif %}
+            </div>
+
+            <div class="row g-3">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label fw-bold text-muted">Roti / Naan Selection</label>
+                  {{ form.roti_price_obj }}
+                  {{ form.roti_type }}
+                  {% if form.roti_price_obj.errors %}<div class="text-danger small">{{ form.roti_price_obj.errors }}</div>{% endif %}
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label fw-bold text-muted">Sweet Selection</label>
+                  {{ form.sweet }}
+                  {% if form.sweet.errors %}<div class="text-danger small">{{ form.sweet.errors }}</div>{% endif %}
+                  <div class="form-text">Select NA / leave empty if no sweet is included today.</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Quantities & Estimates -->
+      <div class="col-lg-6">
+        <div class="card form-section-card border-0 shadow-sm rounded-3 h-100">
+          <div class="card-header form-section-header py-3">
+            <h5 class="card-title mb-0 fw-bold card-title-text">
+              <i class="bi bi-ticket-perforated theme-text-primary me-2"></i>2. Quantity Estimations vs Actuals
+            </h5>
+          </div>
+          <div class="card-body p-4">
+
+            <!-- Tokens Section -->
+            <div class="quantity-box mb-3">
+              <h6 class="fw-bold card-title-text mb-2"><i class="bi bi-tag-fill me-2 theme-text-primary"></i>Lunch Tokens</h6>
+              <div class="row g-3">
+                <div class="col-6">
+                  <label class="form-label small text-muted">Estimated Tokens Made</label>
+                  {{ form.planned_count }}
+                </div>
+                <div class="col-6">
+                  <label class="form-label small text-muted">Actual Tokens Issued (Auto)</label>
+                  {{ form.actual_tokens_issued }}
+                </div>
+              </div>
+            </div>
+
+            <!-- Extra Roti Section -->
+            <div class="quantity-box mb-3">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="fw-bold card-title-text mb-0"><i class="bi bi-disc me-2 text-warning"></i>Extra Roti / Naan</h6>
+                <span class="badge bg-warning text-dark">Price: <span id="lblRotiUnitPrice">{{ form.roti_unit_price.value|default:"0.00" }}</span></span>
+              </div>
+              <div class="row g-3">
+                <div class="col-6">
+                  <label class="form-label small text-muted">Estimated Extra Roti</label>
+                  {{ form.estimated_extra_roti }}
+                </div>
+                <div class="col-6">
+                  <label class="form-label small text-muted">Actual Extra Roti Issued (Auto)</label>
+                  {{ form.actual_extra_roti_issued }}
+                </div>
+              </div>
+              <div class="d-none">{{ form.roti_unit_price }}</div>
+            </div>
+
+            <!-- Extra Sweet Section -->
+            <div class="quantity-box">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="fw-bold card-title-text mb-0"><i class="bi bi-cup-straw me-2 text-danger"></i>Extra Sweets</h6>
+                <span class="badge bg-danger">Price: <span id="lblSweetUnitPrice">{{ form.sweet_unit_price.value|default:"0.00" }}</span></span>
+              </div>
+              <div class="row g-3">
+                <div class="col-6">
+                  <label class="form-label small text-muted">Estimated Extra Sweets</label>
+                  {{ form.estimated_extra_sweet }}
+                </div>
+                <div class="col-6">
+                  <label class="form-label small text-muted">Actual Extra Sweets Issued (Auto)</label>
+                  {{ form.actual_extra_sweet_issued }}
+                </div>
+              </div>
+              <div class="d-none">{{ form.sweet_unit_price }}</div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Section: Daily Expense & Costing Calculations -->
+      <div class="col-12">
+        <div class="card form-section-card border-0 shadow-sm rounded-3 border-start border-primary border-4">
+          <div class="card-header form-section-header py-3 d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0 fw-bold card-title-text">
+              <i class="bi bi-calculator text-success me-2"></i>3. Daily Expense & Unit Cost Calculation
+            </h5>
+            <button type="button" class="btn btn-outline-success btn-sm fw-bold px-3" id="btnRecalculate">
+              <i class="bi bi-arrow-clockwise me-1" id="spinnerRecalc"></i> Recalculate & Sync Issued Data
+            </button>
+          </div>
+          <div class="card-body p-4">
+            <div class="row g-3 align-items-center">
+
+              <div class="col-md-3">
+                <label class="form-label fw-bold text-muted">Total Daily Expense <span class="text-danger">*</span></label>
+                {{ form.total_expense }}
+                <div class="form-text">Total expense spent today</div>
+              </div>
+
+              <div class="col-md-3">
+                <label class="form-label fw-bold text-muted">Adjustment Amount (+/-)</label>
+                {{ form.adjustment_amount }}
+                <div class="form-text">Add (+) or subtract (-) adjustment</div>
+              </div>
+
+              <div class="col-md-3">
+                <label class="form-label fw-bold text-muted">Net Token Expense (Auto)</label>
+                {{ form.token_expense }}
+                <div class="form-text">Total - Extra Roti Cost - Extra Sweet Cost + Adj</div>
+              </div>
+
+              <div class="col-md-3">
+                <label class="form-label fw-bold text-success">Token Unit Cost (Auto)</label>
+                {{ form.price_per_token }}
+                <div class="form-text">Net Token Expense / Actual Tokens</div>
+              </div>
+
+            </div>
+
+            <hr class="my-4">
+
+            <div class="d-flex justify-content-end gap-3">
+              <a href="{% url 'menu:daily_estimate' %}" class="btn btn-light px-4">Cancel</a>
+              <button type="submit" class="btn btn-primary btn-lg px-5 fw-bold shadow-sm">
+                <i class="bi bi-check-lg me-1"></i> {% if object %}Update Entry{% else %}Save Daily Menu Entry{% endif %}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  <script>
+    const recalculateUrl = "{% url 'menu:daily_estimate_recalculate' %}";
+  </script>
+  <script src="{% static 'menu/js/daily_estimate_form.js' %}"></script>
+{% endblock %}

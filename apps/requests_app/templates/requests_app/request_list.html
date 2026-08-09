@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Token Open/Close Requests | {{ site_name }}{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'requests_app/css/request_list.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">Token Open / Close Requests</h1>
+    <p class="page-header-subtitle">Pending Acknowledgment: {{ pending_count }}</p>
+  </div>
+</div>
+
+<div class="card mb-4" id="cardFilter">
+  <div class="card-body py-2">
+    <form method="get" class="d-flex gap-2 align-items-center">
+      <span class="text-muted small fw-bold">Filter Status:</span>
+      <a href="{% url 'requests_app:list' %}" class="btn btn-sm {% if not current_status %}btn-primary{% else %}btn-outline-secondary{% endif %}">All</a>
+      {% for val, label in status_choices %}
+        <a href="?status={{ val }}" class="btn btn-sm {% if current_status == val %}btn-primary{% else %}btn-outline-secondary{% endif %}">{{ label }}</a>
+      {% endfor %}
+    </form>
+  </div>
+</div>
+
+<div class="card" id="cardRequests">
+  <div class="card-body p-0">
+    {% if requests %}
+    <div class="table-responsive">
+      <table class="table mb-0">
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Type</th>
+            <th>Date Range</th>
+            <th>Submitted At</th>
+            <th>Status</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for req in requests %}
+          <tr>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                {% if req.employee.photo %}
+                  <img src="{{ req.employee.photo.url }}" alt="{{ req.employee.full_name }}" class="rounded-circle border" style="width:36px;height:36px;object-fit:cover;">
+                {% else %}
+                  <div class="rounded-circle bg-warning-subtle text-warning-emphasis fw-bold d-flex align-items-center justify-content-center border border-warning-subtle" style="width:36px;height:36px;font-size:0.85rem;">
+                    {{ req.employee.full_name|slice:":2"|upper }}
+                  </div>
+                {% endif %}
+                <div>
+                  <div class="fw-bold text-dark">{{ req.employee.full_name }}</div>
+                  <div class="text-muted small">P-No: {{ req.employee.pno|default:"—" }}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="badge {% if req.request_type == 'open' %}bg-success{% else %}bg-danger{% endif %}">
+                {{ req.get_request_type_display|upper }}
+              </span>
+            </td>
+            <td>{{ req.date_range_start }} to {{ req.date_range_end }}</td>
+            <td class="text-muted small">{{ req.submitted_at|date:"M j, Y g:i A" }}</td>
+            <td>
+              <span class="badge-pill {% if req.status == 'acknowledged' %}badge-active{% elif req.status == 'pending' %}badge-pending{% else %}badge-inactive{% endif %}">
+                {{ req.get_status_display }}
+              </span>
+            </td>
+            <td class="text-end">
+              <a href="{% url 'requests_app:detail' req.pk %}" class="btn btn-sm btn-outline-primary me-1">View</a>
+              {% if req.status == 'pending' %}
+              <form method="post" action="{% url 'requests_app:acknowledge' req.pk %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Acknowledge this request?')">Acknowledge</button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state py-5 text-center text-muted">
+      <i class="bi bi-inbox fs-1"></i>
+      <p class="mt-2 mb-0">No open/close requests found.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'requests_app/js/request_list.js' %}"></script>
+{% endblock %}

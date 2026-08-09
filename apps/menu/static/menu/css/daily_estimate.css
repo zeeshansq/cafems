@@ -1,0 +1,66 @@
+/* Daily Menu Entries List Styling - Dark & Light Mode Theme Responsive */
+
+.filter-card-theme {
+  background-color: var(--clr-surface);
+  border: 1px solid var(--clr-border);
+  color: var(--clr-text);
+}
+
+.summary-stat-card {
+  background-color: var(--clr-surface);
+  border: 1px solid var(--clr-border);
+  color: var(--clr-text);
+  transition: box-shadow var(--transition-fast);
+}
+
+.summary-stat-card:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+.entries-table-card {
+  background-color: var(--clr-surface);
+  border: 1px solid var(--clr-border);
+}
+
+.entries-table {
+  color: var(--clr-text);
+}
+
+.entries-table th {
+  background-color: var(--clr-surface-2);
+  color: var(--clr-text-muted);
+  border-bottom: 1px solid var(--clr-border);
+  font-weight: 600;
+}
+
+.entries-table td {
+  border-bottom: 1px solid var(--clr-border);
+  color: var(--clr-text);
+  vertical-align: middle;
+}
+
+[data-theme="dark"] .badge-roti-type {
+  background-color: var(--clr-surface-3);
+  color: var(--clr-text);
+  border: 1px solid var(--clr-border);
+}
+
+[data-theme="light"] .badge-roti-type {
+  background-color: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+
+[data-theme="dark"] .form-control-theme,
+[data-theme="dark"] .form-select-theme {
+  background-color: var(--clr-surface-2);
+  border-color: var(--clr-border);
+  color: var(--clr-text);
+}
+
+[data-theme="light"] .form-control-theme,
+[data-theme="light"] .form-select-theme {
+  background-color: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}

@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Reports & Analytics Hub | {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+
+  {# ── Page Header ───────────────────────────────────────────────────── #}
+  <div class="d-flex flex-wrap align-items-center justify-content-between pb-3 mb-4 border-bottom gap-2">
+    <div>
+      <h1 class="h3 fw-bold mb-0 text-body d-flex align-items-center">
+        <i class="bi bi-bar-chart-line-fill me-2 text-warning"></i>Cafeteria Analytics & Reports Hub
+      </h1>
+      <p class="text-body-secondary small mb-0">
+        Generate operational analytics, token summaries, POS sales history, employee deposits, and request logs.
+      </p>
+    </div>
+  </div>
+
+  {# ── Reports Grid (7 Analytical Report Cards) ────────────────────────── #}
+  <div class="row g-4" id="reportsGrid">
+
+    {# 1. Monthly Lunch Token Summary Card #}
+    <div class="col-md-6 col-lg-4">
+      <div class="card h-100 shadow-sm border border-secondary-subtle bg-body hover-lift">
+        <div class="card-body p-4 text-center d-flex flex-column justify-content-between">
+          <div>
+            <div class="rounded-circle bg-warning-subtle text-warning mx-auto mb-3 d-flex align-items-center justify-content-center" style="width:60px;height:60px;">
+              <i class="bi bi-ticket-perforated-fill fs-2"></i>
+            </div>
+            <h4 class="h5 fw-bold text-body mb-2">Monthly Token Summary</h4>
+            <p class="text-body-secondary small mb-4">
+              Detailed breakdown of total lunch meal tokens, extra roti, extra sweet, and attendance days per employee.
+            </p>
+          </div>
+          <a href="{% url 'reports:monthly_tokens' %}" class="btn btn-warning fw-bold text-dark w-100 shadow-sm">
+            <i class="bi bi-box-arrow-in-right me-1"></i>View Token Summary
+          </a>
+        </div>
+      </div>
+    </div>
+
+    {# 2. Misc Charges & POS Cash Collection History Card #}
+    <div class="col-md-6 col-lg-4">
+      <div class="card h-100 shadow-sm border border-secondary-subtle bg-body hover-lift">
+        <div class="card-body p-4 text-center d-flex flex-column justify-content-between">
+          <div>
+            <div class="rounded-circle bg-success-subtle text-success mx-auto mb-3 d-flex align-items-center justify-content-center" style="width:60px;height:60px;">
+              <i class="bi bi-cart-check-fill fs-2"></i>
+            </div>
+            <h4 class="h5 fw-bold text-body mb-2">Misc Charges & POS Collection</h4>
+            <p class="text-body-secondary small mb-4">
+              Track tea and snack counter sales, cash collections, walk-in revenue, and transaction logs.
+            </p>
+          </div>
+          <a href="{% url 'reports:pos_collection' %}" class="btn btn-success fw-bold text-white w-100 shadow-sm">
+            <i class="bi bi-box-arrow-in-right me-1"></i>View POS Sales Log
+          </a>
+        </div>
+      </div>
+    </div>
+
+    {# 3. Employee Profiles & Issuance History Card #}
+    <div class="col-md-6 col-lg-4">
+      <div class="card h-100 shadow-sm border border-secondary-subtle bg-body hover-lift">
+        <div class="card-body p-4 text-center d-flex flex-column justify-content-between">
+          <div>
+            <div class="rounded-circle bg-primary-subtle text-primary mx-auto mb-3 d-flex align-items-center justify-content-center" style="width:60px;height:60px;">
+              <i class="bi bi-person-lines-fill fs-2"></i>
+            </div>
+            <h4 class="h5 fw-bold text-body mb-2">Employee Issuance Profiles</h4>
+            <p class="text-body-secondary small mb-4">
+              Audit employee member profiles with cumulative token counts, extra roti/sweet counts, and POS spend.
+            </p>
+          </div>
+          <a href="{% url 'reports:employee_issuance' %}" class="btn btn-primary fw-bold text-white w-100 shadow-sm">
+            <i class="bi bi-box-arrow-in-right me-1"></i>View Employee Profiles
+          </a>
+        </div>
+      </div>
+    </div>
+
+    {# 4. Employee Security Deposits Report Card #}
+    <div class="col-md-6 col-lg-4">
+      <div class="card h-100 shadow-sm border border-secondary-subtle bg-body hover-lift">
+        <div class="card-body p-4 text-center d-flex flex-column justify-content-between">
+          <div>
+            <div class="rounded-circle bg-info-subtle text-info mx-auto mb-3 d-flex align-items-center justify-content-center" style="width:60px;height:60px;">
+              <i class="bi bi-piggy-bank-fill fs-2"></i>
+            </div>
+            <h4 class="h5 fw-bold text-body mb-2">Employee Security Deposits</h4>
+            <p class="text-body-secondary small mb-4">
+              Report on security deposit balances, paid deposits held, membership status, and department breakdowns.
+            </p>
+          </div>
+          <a href="{% url 'reports:employee_deposits' %}" class="btn btn-info fw-bold text-white w-100 shadow-sm">
+            <i class="bi bi-box-arrow-in-right me-1"></i>View Deposit Report
+          </a>
+        </div>
+      </div>
+    </div>
+
+    {# 5. Token Issuance Requests Report Card #}
+    <div class="col-md-6 col-lg-4">
+      <div class="card h-100 shadow-sm border border-secondary-subtle bg-body hover-lift">
+        <div class="card-body p-4 text-center d-flex flex-column justify-content-between">
+          <div>
+            <div class="rounded-circle bg-success-subtle text-success mx-auto mb-3 d-flex align-items-center justify-content-center" style="width:60px;height:60px;">
+              <i class="bi bi-calendar-plus-fill fs-2"></i>
+            </div>
+            <h4 class="h5 fw-bold text-body mb-2">Token Issuance Requests</h4>
+            <p class="text-body-secondary small mb-4">
+              Review member requests for token activation (OPEN requests), start dates, reasons, and approval logs.
+            </p>
+          </div>
+          <a href="{% url 'reports:issuance_requests' %}" class="btn btn-outline-success fw-bold w-100 shadow-sm">
+            <i class="bi bi-box-arrow-in-right me-1"></i>View Issuance Requests
+          </a>
+        </div>
+      </div>
+    </div>
+
+    {# 6. Token Closure Requests Report Card #}
+    <div class="col-md-6 col-lg-4">
+      <div class="card h-100 shadow-sm border border-secondary-subtle bg-body hover-lift">
+        <div class="card-body p-4 text-center d-flex flex-column justify-content-between">
+          <div>
+            <div class="rounded-circle bg-danger-subtle text-danger mx-auto mb-3 d-flex align-items-center justify-content-center" style="width:60px;height:60px;">
+              <i class="bi bi-calendar-minus-fill fs-2"></i>
+            </div>
+            <h4 class="h5 fw-bold text-body mb-2">Token Closure Requests</h4>
+            <p class="text-body-secondary small mb-4">
+              Monitor member temporary closure requests (CLOSE requests), leave periods, reasons, and status.
+            </p>
+          </div>
+          <a href="{% url 'reports:closure_requests' %}" class="btn btn-outline-danger fw-bold w-100 shadow-sm">
+            <i class="bi bi-box-arrow-in-right me-1"></i>View Closure Requests
+          </a>
+        </div>
+      </div>
+    </div>
+
+    {# 7. Billing & Collections Summary Card #}
+    <div class="col-md-6 col-lg-4">
+      <div class="card h-100 shadow-sm border border-secondary-subtle bg-body hover-lift">
+        <div class="card-body p-4 text-center d-flex flex-column justify-content-between">
+          <div>
+            <div class="rounded-circle bg-secondary-subtle text-body mx-auto mb-3 d-flex align-items-center justify-content-center" style="width:60px;height:60px;">
+              <i class="bi bi-receipt-cutoff fs-2"></i>
+            </div>
+            <h4 class="h5 fw-bold text-body mb-2">Billing & Invoices Report</h4>
+            <p class="text-body-secondary small mb-4">
+              Track total billed amounts, collected payments, outstanding receivables, and invoice ledgers.
+            </p>
+          </div>
+          <a href="{% url 'reports:billing' %}" class="btn btn-secondary fw-bold text-white w-100 shadow-sm">
+            <i class="bi bi-box-arrow-in-right me-1"></i>View Billing Invoices
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}

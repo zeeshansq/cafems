@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }} | {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+
+  {# ── Header Bar ────────────────────────────────────────────────────── #}
+  <div class="d-flex flex-wrap align-items-center justify-content-between pb-3 mb-3 border-bottom gap-2">
+    <div>
+      <h1 class="h3 fw-bold mb-0 text-body d-flex align-items-center">
+        <i class="bi bi-clock-history me-2 text-warning"></i>Employee Token Issuance History
+      </h1>
+      <p class="text-body-secondary small mb-0">
+        View, filter, and audit detailed lunch token issuance history for employees across selected date ranges.
+      </p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'tokens:issue' %}" class="btn btn-primary btn-sm fw-bold">
+        <i class="bi bi-patch-check me-1"></i>Issue Console
+      </a>
+      <a href="{% url 'tokens:daily_report' %}" class="btn btn-outline-secondary btn-sm fw-bold">
+        <i class="bi bi-journal-text me-1"></i>Daily Closing Report
+      </a>
+    </div>
+  </div>
+
+  {# ── Filter Toolbar Card ───────────────────────────────────────────── #}
+  <div class="card shadow-sm mb-4 border-0 bg-body-tertiary">
+    <div class="card-body p-3">
+      <form method="get" action="{% url 'tokens:employee_history' %}" class="row g-2 align-items-end">
+        
+        {# Employee Selection Dropdown #}
+        <div class="col-md-3 col-lg-3">
+          <label class="form-label small fw-bold text-body-secondary mb-1">Select Employee</label>
+          <select name="employee_id" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="">-- All Employees --</option>
+            {% for emp in all_employees %}
+              <option value="{{ emp.id }}" {% if current_emp_id == emp.id %}selected{% endif %}>
+                {{ emp.full_name }} ({{ emp.pno|default:"—" }}) {% if emp.department %} - {{ emp.department.name }}{% endif %}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        {# Search Query Input #}
+        <div class="col-md-2 col-lg-2">
+          <label class="form-label small fw-bold text-body-secondary mb-1">Search Name / P-No</label>
+          <input type="text" name="q" value="{{ current_q }}" class="form-control form-control-sm" placeholder="e.g. Ali or P-1001">
+        </div>
+
+        {# Start Date #}
+        <div class="col-md-2 col-lg-2">
+          <label class="form-label small fw-bold text-body-secondary mb-1">Start Date</label>
+          <input type="date" name="start_date" value="{{ start_date|date:'Y-m-d' }}" class="form-control form-control-sm">
+        </div>
+
+        {# End Date #}
+        <div class="col-md-2 col-lg-2">
+          <label class="form-label small fw-bold text-body-secondary mb-1">End Date</label>
+          <input type="date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" class="form-control form-control-sm">
+        </div>
+
+        {# Status Filter #}
+        <div class="col-md-1.5 col-lg-1.5">
+          <label class="form-label small fw-bold text-body-secondary mb-1">Status</label>
+          <select name="status" class="form-select form-select-sm">
+            <option value="">All Statuses</option>
+            {% for code, label in status_choices %}
+              <option value="{{ code }}" {% if current_status == code %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        {# Actions #}
+        <div class="col-md-1.5 col-lg-1.5 d-flex gap-1">
+          <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold">
+            <i class="bi bi-funnel-fill me-1"></i>Filter
+          </button>
+          <a href="{% url 'tokens:employee_history' %}" class="btn btn-outline-secondary btn-sm" title="Reset Filters">
+            <i class="bi bi-arrow-counterclockwise"></i>
+          </a>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  {# ── Executive Summary KPI Widgets ─────────────────────────────────── #}
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-md-3">
+      <div class="card shadow-sm border-0 bg-primary-subtle text-primary p-3 rounded-3">
+        <div class="d-flex align-items-center justify-content-between">
+          <div>
+            <div class="small fw-semibold text-uppercase">Tokens Issued</div>
+            <div class="h2 mb-0 fw-bold font-monospace">{{ total_tokens }}</div>
+          </div>
+          <div class="fs-1 opacity-75"><i class="bi bi-ticket-perforated-fill"></i></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-md-3">
+      <div class="card shadow-sm border-0 bg-success-subtle text-success p-3 rounded-3">
+        <div class="d-flex align-items-center justify-content-between">
+          <div>
+            <div class="small fw-semibold text-uppercase">Extra Roti Issued</div>
+            <div class="h2 mb-0 fw-bold font-monospace">{{ total_roti }}</div>
+          </div>
+          <div class="fs-1 opacity-75"><i class="bi bi-disc-fill"></i></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-md-3">
+      <div class="card shadow-sm border-0 bg-warning-subtle text-warning-emphasis p-3 rounded-3">
+        <div class="d-flex align-items-center justify-content-between">
+          <div>
+            <div class="small fw-semibold text-uppercase">Extra Sweets Issued</div>
+            <div class="h2 mb-0 fw-bold font-monospace">{{ total_sweet }}</div>
+          </div>
+          <div class="fs-1 opacity-75"><i class="bi bi-cup-straw"></i></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-md-3">
+      <div class="card shadow-sm border-0 bg-info-subtle text-info-emphasis p-3 rounded-3">
+        <div class="d-flex align-items-center justify-content-between">
+          <div>
+            <div class="small fw-semibold text-uppercase">Days Attended</div>
+            <div class="h2 mb-0 fw-bold font-monospace">{{ total_days }}</div>
+          </div>
+          <div class="fs-1 opacity-75"><i class="bi bi-calendar-check-fill"></i></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Detailed Issuance History Log Roster Table ───────────────────── #}
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-body-tertiary py-2.5 px-3 d-flex justify-content-between align-items-center border-bottom">
+      <h2 class="h6 mb-0 fw-bold text-body">
+        <i class="bi bi-list-stars me-2 text-primary"></i>Issuance Logs Breakdown
+        {% if selected_employee %}
+          for <span class="text-primary">{{ selected_employee.full_name }} ({{ selected_employee.pno|default:"—" }})</span>
+        {% endif %}
+        <span class="badge bg-secondary-subtle text-body border ms-2">{{ page_obj.paginator.count }} Records Found</span>
+      </h2>
+      <div class="small text-body-secondary">
+        Range: <strong>{{ start_date|date:"M d, Y" }}</strong> to <strong>{{ end_date|date:"M d, Y" }}</strong>
+      </div>
+    </div>
+
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 text-nowrap">
+          <thead class="table-light text-uppercase small text-body-secondary">
+            <tr>
+              <th style="width:140px;">Date & Time</th>
+              <th>Employee Member</th>
+              <th>Department</th>
+              <th class="text-center">Token #</th>
+              <th class="text-center">Token Qty</th>
+              <th class="text-center">Extra Roti</th>
+              <th class="text-center">Extra Sweet</th>
+              <th>Issued By</th>
+              <th class="text-center">Status</th>
+              <th class="text-end" style="width:110px;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for tok in tokens %}
+              <tr>
+                <td>
+                  <div class="fw-bold text-body small">{{ tok.date|date:"d-M-Y" }}</div>
+                  <div class="text-body-secondary font-monospace" style="font-size:0.75rem;">{{ tok.issue_time|date:"h:i A" }}</div>
+                </td>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    {% if tok.employee.photo %}
+                      <img :src="{{ tok.employee.photo.url }}" class="rounded-circle border" style="width:32px;height:32px;object-fit:cover;">
+                    {% else %}
+                      <div class="rounded-circle bg-warning text-dark fw-bold d-flex align-items-center justify-content-center" style="width:32px;height:32px;font-size:0.8rem;">
+                        {{ tok.employee.initials }}
+                      </div>
+                    {% endif %}
+                    <div>
+                      <a href="?employee_id={{ tok.employee.id }}&start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}" class="fw-bold text-body text-decoration-none hover-primary small">
+                        {{ tok.employee.full_name }}
+                      </a>
+                      <div>
+                        <span class="badge bg-dark text-white font-monospace" style="font-size:0.7rem;">{{ tok.employee.pno|default:"—" }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span class="badge bg-secondary-subtle text-body border" style="font-size:0.75rem;">
+                    {{ tok.employee.department.name|default:"General" }}
+                  </span>
+                </td>
+                <td class="text-center">
+                  <span class="fw-bold font-monospace text-primary">#{{ tok.token_number }}</span>
+                </td>
+                <td class="text-center">
+                  <span class="badge bg-primary px-2.5 py-1 font-monospace fs-6">{{ tok.token_qty }}x</span>
+                </td>
+                <td class="text-center">
+                  {% if tok.extra_roti_qty > 0 %}
+                    <span class="badge bg-success px-2 py-1 font-monospace">+{{ tok.extra_roti_qty }} Roti</span>
+                  {% else %}
+                    <span class="text-body-secondary small">—</span>
+                  {% endif %}
+                </td>
+                <td class="text-center">
+                  {% if tok.extra_sweet_qty > 0 %}
+                    <span class="badge bg-warning text-dark px-2 py-1 font-monospace">+{{ tok.extra_sweet_qty }} Sweet</span>
+                  {% else %}
+                    <span class="text-body-secondary small">—</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <div class="small fw-semibold text-body">{{ tok.issued_by.username|default:"System" }}</div>
+                  {% if tok.is_retroactive %}
+                    <span class="badge bg-info-subtle text-info border" style="font-size:0.65rem;">Charged</span>
+                  {% endif %}
+                </td>
+                <td class="text-center">
+                  {% if tok.status == 'issued' %}
+                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 small">
+                      <i class="bi bi-check-circle-fill me-1"></i>Issued
+                    </span>
+                  {% elif tok.status == 'cancelled' %}
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 small">
+                      <i class="bi bi-x-circle-fill me-1"></i>Cancelled
+                    </span>
+                  {% else %}
+                    <span class="badge bg-secondary-subtle text-body border px-2 py-1 small">{{ tok.get_status_display }}</span>
+                  {% endif %}
+                </td>
+                <td class="text-end">
+                  <a href="{% url 'tokens:token_receipt' tok.pk %}" target="_blank" class="btn btn-sm btn-outline-warning text-dark fw-semibold" title="Print 80mm Receipt">
+                    <i class="bi bi-printer me-1"></i>Print
+                  </a>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="10" class="text-center py-5 text-body-secondary">
+                  <i class="bi bi-inbox fs-1 opacity-50 d-block mb-2"></i>
+                  <p class="mb-0 fw-semibold">No token issuance records found matching the filter criteria.</p>
+                  <p class="small text-body-secondary">Try adjusting the employee selection or date range.</p>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {# Pagination Footer #}
+    {% if is_paginated %}
+      <div class="card-footer bg-body-tertiary py-2.5 px-3 border-top d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div class="small text-body-secondary">
+          Showing <strong>{{ page_obj.start_index }}</strong> to <strong>{{ page_obj.end_index }}</strong> of <strong>{{ page_obj.paginator.count }}</strong> logs
+        </div>
+        <nav>
+          <ul class="pagination pagination-sm mb-0">
+            {% if page_obj.has_previous %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}&employee_id={{ current_emp_id }}&q={{ current_q }}&start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}&status={{ current_status }}">Previous</a>
+              </li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link">Previous</span></li>
+            {% endif %}
+
+            {% for num in paginator.page_range %}
+              {% if page_obj.number == num %}
+                <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+              {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ num }}&employee_id={{ current_emp_id }}&q={{ current_q }}&start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}&status={{ current_status }}">{{ num }}</a>
+                </li>
+              {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}&employee_id={{ current_emp_id }}&q={{ current_q }}&start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}&status={{ current_status }}">Next</a>
+              </li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link">Next</span></li>
+            {% endif %}
+          </ul>
+        </nav>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

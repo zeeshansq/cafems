@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Employee Directory & Management | {{ site_name }}{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'employees/css/employee_list.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+  <div>
+    <h1 class="page-header-title h3 fw-bold text-body mb-1">Employee Directory & Management</h1>
+    <p class="page-header-subtitle text-body-secondary mb-0">Search, filter, manage memberships, and track security deposit obligations for employees.</p>
+  </div>
+  {% if request.user.can_manage_employees %}
+  <a href="{% url 'employees:create' %}" class="btn btn-primary fw-bold shadow-sm" id="btnAddEmployee">
+    <i class="bi bi-person-plus-fill me-1"></i>Add New Employee
+  </a>
+  {% endif %}
+</div>
+
+<!-- 1. Executive KPI Metrics Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-md-3 col-6">
+    <div class="card border-0 shadow-sm rounded-3 p-3 bg-body border-start border-primary border-4">
+      <div class="text-body-secondary small text-uppercase fw-semibold">Total Employees</div>
+      <div class="h4 mb-0 fw-bold text-primary mt-1 font-monospace">{{ kpi_total_count }}</div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="card border-0 shadow-sm rounded-3 p-3 bg-body border-start border-success border-4">
+      <div class="text-body-secondary small text-uppercase fw-semibold">Active Members</div>
+      <div class="h4 mb-0 fw-bold text-success mt-1 font-monospace">{{ kpi_active_members }}</div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="card border-0 shadow-sm rounded-3 p-3 bg-body border-start border-info border-4">
+      <div class="text-body-secondary small text-uppercase fw-semibold">Full Open Members</div>
+      <div class="h4 mb-0 fw-bold text-info mt-1 font-monospace">{{ kpi_full_open }}</div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="card border-0 shadow-sm rounded-3 p-3 bg-body border-start {% if kpi_deposit_pending > 0 %}border-danger{% else %}border-secondary{% endif %} border-4">
+      <div class="text-body-secondary small text-uppercase fw-semibold">Pending Security Deposit</div>
+      <div class="h4 mb-0 fw-bold {% if kpi_deposit_pending > 0 %}text-danger{% else %}text-body-secondary{% endif %} mt-1 font-monospace">
+        {{ kpi_deposit_pending|floatformat:2 }}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 2. Smart Search & Filters Bar -->
+<div class="card border-0 shadow-sm rounded-3 mb-4" id="cardSearch">
+  <div class="card-body p-3">
+    <form method="get" id="searchForm" class="row g-2 align-items-center">
+      
+      <!-- Text Search Query -->
+      <div class="col-md-4 col-12">
+        <div class="input-group">
+          <span class="input-group-text bg-body-tertiary text-body-secondary border-end-0"><i class="bi bi-search"></i></span>
+          <input type="text" name="q" id="id_search_q" class="form-control border-start-0"
+                 value="{{ search_query }}" placeholder="Search by name, P-No, Reg #, title..." aria-label="Search">
+        </div>
+      </div>
+
+      <!-- Department Filter -->
+      <div class="col-md-3 col-6">
+        <select name="department" class="form-select" onchange="this.form.submit()">
+          <option value="">All Departments</option>
+          {% for dept in departments %}
+            <option value="{{ dept.id }}" {% if current_dept == dept.id|stringformat:"s" %}selected{% endif %}>{{ dept.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Membership Type Filter -->
+      <div class="col-md-3 col-6">
+        <select name="membership_type" class="form-select" onchange="this.form.submit()">
+          <option value="">All Membership Types</option>
+          {% for val, label in membership_types %}
+            <option value="{{ val }}" {% if current_mtype == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Submit & Reset Buttons -->
+      <div class="col-md-2 col-12 d-flex gap-2">
+        <button type="submit" class="btn btn-primary fw-bold flex-grow-1"><i class="bi bi-filter me-1"></i>Filter</button>
+        <a href="{% url 'employees:list' %}" class="btn btn-outline-secondary" title="Reset Filters"><i class="bi bi-arrow-counterclockwise"></i></a>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<!-- 3. Employee Roster Table -->
+<div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-4" id="cardEmployees">
+  <div class="card-header bg-body-tertiary border-bottom py-3 d-flex justify-content-between align-items-center">
+    <h2 class="card-title h6 mb-0 fw-bold text-body">
+      <i class="bi bi-people-fill me-2 text-primary"></i>Employees Directory List
+    </h2>
+    <span class="text-body-secondary small">Showing page {{ page_obj.number }} of {{ paginator.num_pages }}</span>
+  </div>
+  <div class="card-body p-0" id="employeeTableWrap">
+    {% if employees %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0" id="employeeTable">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-4" style="width:28%;">Employee & P-No</th>
+            <th style="width:16%;">Department</th>
+            <th style="width:16%;">Membership Type</th>
+            <th class="text-center" style="width:12%;">Member Status</th>
+            <th class="text-end" style="width:16%;">Deposit Pending</th>
+            <th class="text-end pe-4" style="width:12%;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for emp in employees %}
+          <tr id="empRow-{{ emp.pk }}">
+            <td class="ps-4">
+              <div class="d-flex align-items-center gap-3">
+                {% if emp.photo %}
+                  <img src="{{ emp.photo.url }}" alt="{{ emp.full_name }}" class="rounded-circle border" style="width:40px;height:40px;object-fit:cover;">
+                {% else %}
+                  <div class="rounded-circle bg-primary-subtle text-primary fw-bold d-flex align-items-center justify-content-center border border-primary-subtle" style="width:40px;height:40px;font-size:0.9rem;">
+                    {{ emp.full_name|slice:":2"|upper }}
+                  </div>
+                {% endif %}
+                <div>
+                  <div class="fw-bold text-body fs-6">{{ emp.full_name }}</div>
+                  <div class="text-body-secondary small font-monospace">
+                    P-No: {{ emp.pno|default:"—" }} {% if emp.register_number %}| Reg: {{ emp.register_number }}{% endif %}
+                    {% if emp.designation %}<span class="ms-1 text-muted">({{ emp.designation }})</span>{% endif %}
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="badge bg-secondary-subtle text-body border" style="font-size:0.78rem;">
+                {{ emp.department.name|default:"General" }}
+              </span>
+            </td>
+            <td>
+              <span class="badge {% if emp.is_full_open %}bg-success-subtle text-success border{% elif emp.is_roti_open %}bg-warning-subtle text-warning-emphasis border{% else %}bg-secondary-subtle text-body border{% endif %} px-2 py-1" style="font-size:0.78rem;">
+                {{ emp.get_membership_type_display }}
+              </span>
+            </td>
+            <td class="text-center">
+              {% if emp.membership_status %}
+                <span class="badge bg-success px-2 py-1 font-monospace" style="font-size:0.75rem;">Active Member</span>
+              {% else %}
+                <span class="badge bg-secondary px-2 py-1 font-monospace" style="font-size:0.75rem;">Inactive</span>
+              {% endif %}
+            </td>
+            <td class="text-end font-monospace">
+              {% if emp.security_deposit_pending > 0 %}
+                <span class="text-danger fw-bold">+ {{ emp.security_deposit_pending|floatformat:2 }}</span>
+              {% else %}
+                <span class="text-success small"><i class="bi bi-check-circle me-1"></i>Paid</span>
+              {% endif %}
+            </td>
+            <td class="text-end pe-4">
+              <div class="d-flex gap-1 justify-content-end">
+                <a href="{% url 'employees:detail' emp.pk %}" class="btn btn-sm btn-outline-secondary px-2 py-1" id="btnView-{{ emp.pk }}" title="View Detail">
+                  <i class="bi bi-eye"></i>
+                </a>
+                {% if request.user.can_manage_employees %}
+                <a href="{% url 'employees:update' emp.pk %}" class="btn btn-sm btn-outline-primary px-2 py-1" id="btnEdit-{{ emp.pk }}" title="Edit Employee">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 4. Pagination Controls (25 Employees per Page) -->
+    {% if is_paginated %}
+    <div class="card-footer bg-body-tertiary border-top py-3 d-flex justify-content-between align-items-center">
+      <div class="text-body-secondary small">
+        Showing <strong>{{ page_obj.start_index }}</strong> to <strong>{{ page_obj.end_index }}</strong> of <strong>{{ paginator.count }}</strong> employees
+      </div>
+      <nav aria-label="Employees pagination">
+        <ul class="pagination pagination-sm mb-0">
+          {% if page_obj.has_previous %}
+          <li class="page-item">
+            <a class="page-item-link btn btn-sm btn-outline-secondary me-1" href="?page={{ page_obj.previous_page_number }}&q={{ search_query }}&department={{ current_dept }}&membership_type={{ current_mtype }}&membership_status={{ current_mstatus }}&is_active={{ current_active }}">
+              <i class="bi bi-chevron-left me-1"></i>Previous
+            </a>
+          </li>
+          {% else %}
+          <li class="page-item disabled">
+            <span class="btn btn-sm btn-outline-secondary disabled me-1"><i class="bi bi-chevron-left me-1"></i>Previous</span>
+          </li>
+          {% endif %}
+
+          <li class="page-item active">
+            <span class="btn btn-sm btn-primary px-3 fw-bold me-1">Page {{ page_obj.number }} of {{ paginator.num_pages }}</span>
+          </li>
+
+          {% if page_obj.has_next %}
+          <li class="page-item">
+            <a class="page-item-link btn btn-sm btn-outline-secondary" href="?page={{ page_obj.next_page_number }}&q={{ search_query }}&department={{ current_dept }}&membership_type={{ current_mtype }}&membership_status={{ current_mstatus }}&is_active={{ current_active }}">
+              Next<i class="bi bi-chevron-right ms-1"></i>
+            </a>
+          </li>
+          {% else %}
+          <li class="page-item disabled">
+            <span class="btn btn-sm btn-outline-secondary disabled">Next<i class="bi bi-chevron-right ms-1"></i></span>
+          </li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="empty-state py-5 text-center text-body-secondary" id="emptyEmployees">
+      <i class="bi bi-people fs-1 d-block mb-2 text-muted"></i>
+      <p class="mb-0 fw-semibold">No employees found matching the selected filters.</p>
+      <p class="small text-muted">Try adjusting your search query, department, or membership type filter.</p>
+      <a href="{% url 'employees:list' %}" class="btn btn-sm btn-outline-primary mt-2">Reset All Filters</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'employees/js/employee_list.js' %}"></script>
+{% endblock %}

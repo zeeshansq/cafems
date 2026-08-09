@@ -1,0 +1,11 @@
+/* Employee Form Styles */
+#cardEmployeeForm {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--clr-border);
+  box-shadow: var(--shadow-sm);
+}
+
+#cardEmployeeForm h5 {
+  font-weight: 600;
+  font-size: 1rem;
+}

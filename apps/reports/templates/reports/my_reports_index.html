@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}My Cafeteria Reports | {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+
+  {# ── Header Bar ────────────────────────────────────────────────────── #}
+  <div class="d-flex flex-wrap align-items-center justify-content-between pb-3 mb-4 border-bottom gap-2">
+    <div>
+      <h1 class="h3 fw-bold mb-0 text-body d-flex align-items-center">
+        <i class="bi bi-person-badge-fill me-2 text-warning"></i>My Personal Cafeteria Reports & Logs
+      </h1>
+      <p class="text-body-secondary small mb-0">
+        Review your personal lunch token activity, POS snack counter spend, monthly invoices, and token request history.
+      </p>
+    </div>
+    <a href="{% url 'core:employee_dashboard' %}" class="btn btn-outline-secondary btn-sm fw-bold">
+      <i class="bi bi-arrow-left me-1"></i>Back to My Dashboard
+    </a>
+  </div>
+
+  {# ── Member Reports Grid (4 Cards) ────────────────────────────────── #}
+  <div class="row g-4" id="myReportsGrid">
+
+    {# 1. My Token Summary & Attendance Log Card #}
+    <div class="col-md-6 col-lg-3">
+      <div class="card h-100 shadow-sm border border-secondary-subtle bg-body hover-lift">
+        <div class="card-body p-4 text-center d-flex flex-column justify-content-between">
+          <div>
+            <div class="rounded-circle bg-warning-subtle text-warning mx-auto mb-3 d-flex align-items-center justify-content-center" style="width:60px;height:60px;">
+              <i class="bi bi-ticket-perforated-fill fs-2"></i>
+            </div>
+            <h4 class="h5 fw-bold text-body mb-2">My Token Summary</h4>
+            <p class="text-body-secondary small mb-4">
+              Audit your monthly lunch tokens issued, extra roti, extra sweet add-ons, and dining attendance log.
+            </p>
+          </div>
+          <a href="{% url 'reports:my_token_report' %}" class="btn btn-warning fw-bold text-dark w-100 shadow-sm">
+            <i class="bi bi-box-arrow-in-right me-1"></i>View My Tokens
+          </a>
+        </div>
+      </div>
+    </div>
+
+    {# 2. My Tea & Snack POS Purchase History Card #}
+    <div class="col-md-6 col-lg-3">
+      <div class="card h-100 shadow-sm border border-secondary-subtle bg-body hover-lift">
+        <div class="card-body p-4 text-center d-flex flex-column justify-content-between">
+          <div>
+            <div class="rounded-circle bg-success-subtle text-success mx-auto mb-3 d-flex align-items-center justify-content-center" style="width:60px;height:60px;">
+              <i class="bi bi-cart-check-fill fs-2"></i>
+            </div>
+            <h4 class="h5 fw-bold text-body mb-2">My POS Purchases</h4>
+            <p class="text-body-secondary small mb-4">
+              Track your tea, coffee, samosas, and snack counter itemized receipts and total spend history.
+            </p>
+          </div>
+          <a href="{% url 'reports:my_pos_report' %}" class="btn btn-success fw-bold text-white w-100 shadow-sm">
+            <i class="bi bi-box-arrow-in-right me-1"></i>View My POS Spend
+          </a>
+        </div>
+      </div>
+    </div>
+
+    {# 3. My Financial Statement & Invoices Card #}
+    <div class="col-md-6 col-lg-3">
+      <div class="card h-100 shadow-sm border border-secondary-subtle bg-body hover-lift">
+        <div class="card-body p-4 text-center d-flex flex-column justify-content-between">
+          <div>
+            <div class="rounded-circle bg-danger-subtle text-danger mx-auto mb-3 d-flex align-items-center justify-content-center" style="width:60px;height:60px;">
+              <i class="bi bi-receipt-cutoff fs-2"></i>
+            </div>
+            <h4 class="h5 fw-bold text-body mb-2">My Invoices Ledger</h4>
+            <p class="text-body-secondary small mb-4">
+              Inspect your monthly cafeteria bills, published token rates, payments made, and outstanding balance.
+            </p>
+          </div>
+          <a href="{% url 'reports:my_billing_report' %}" class="btn btn-danger fw-bold text-white w-100 shadow-sm">
+            <i class="bi bi-box-arrow-in-right me-1"></i>View My Invoices
+          </a>
+        </div>
+      </div>
+    </div>
+
+    {# 4. My Token Requests Log Card #}
+    <div class="col-md-6 col-lg-3">
+      <div class="card h-100 shadow-sm border border-secondary-subtle bg-body hover-lift">
+        <div class="card-body p-4 text-center d-flex flex-column justify-content-between">
+          <div>
+            <div class="rounded-circle bg-info-subtle text-info mx-auto mb-3 d-flex align-items-center justify-content-center" style="width:60px;height:60px;">
+              <i class="bi bi-calendar-check-fill fs-2"></i>
+            </div>
+            <h4 class="h5 fw-bold text-body mb-2">My Token Requests</h4>
+            <p class="text-body-secondary small mb-4">
+              Review your submitted token activation (OPEN) and temporary leave (CLOSE) request statuses.
+            </p>
+          </div>
+          <a href="{% url 'reports:my_requests_report' %}" class="btn btn-info fw-bold text-white w-100 shadow-sm">
+            <i class="bi bi-box-arrow-in-right me-1"></i>View My Requests
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}My Open/Close Requests | {{ site_name }}{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'requests_app/css/my_requests.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">My Open / Close Requests</h1>
+    <p class="page-header-subtitle">Submit or track your cafeteria token status change requests.</p>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-5">
+    <div class="card" id="cardNewRequest">
+      <div class="card-header"><h2 class="card-title"><i class="bi bi-plus-circle me-2 text-primary"></i>Submit New Request</h2></div>
+      <div class="card-body">
+        <div class="alert alert-info py-2 small" role="alert">
+          <i class="bi bi-info-circle me-1"></i><strong>Notice:</strong> Requests must be submitted at least 1 day prior by 2:00 PM PKT cutoff time.
+        </div>
+
+        <form method="post" action="{% url 'requests_app:my_request_create' %}" id="newRequestForm">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label for="{{ form.request_type.id_for_label }}" class="form-label fw-bold">Request Type</label>
+            {{ form.request_type }}
+          </div>
+          <div class="mb-3" id="tokenQtyGroup">
+            <label for="{{ form.requested_token_qty.id_for_label }}" class="form-label fw-bold">Requested Token Qty (1-5)</label>
+            {{ form.requested_token_qty }}
+          </div>
+          <div class="mb-3">
+            <label for="{{ form.date_range_start.id_for_label }}" class="form-label fw-bold">Start Date</label>
+            {{ form.date_range_start }}
+          </div>
+          <div class="mb-3">
+            <label for="{{ form.date_range_end.id_for_label }}" class="form-label fw-bold">End Date</label>
+            {{ form.date_range_end }}
+          </div>
+          <div class="mb-3">
+            <label for="{{ form.reason.id_for_label }}" class="form-label fw-bold">Reason (Optional)</label>
+            {{ form.reason }}
+          </div>
+          <button type="submit" class="btn btn-primary w-100 fw-bold" id="btnSubmitRequest">
+            <i class="bi bi-send me-1"></i>Submit Request
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-7">
+    <div class="card" id="cardMyRequestsList">
+      <div class="card-header"><h2 class="card-title"><i class="bi bi-clock-history me-2"></i>My Submission History</h2></div>
+      <div class="card-body p-0">
+        {% if requests %}
+        <div class="table-responsive">
+          <table class="table mb-0">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Dates</th>
+                <th>Status</th>
+                <th class="text-end">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for req in requests %}
+              <tr>
+                <td>
+                  <span class="badge {% if req.request_type == 'open' %}bg-success{% else %}bg-danger{% endif %}">
+                    {{ req.get_request_type_display|upper }}
+                  </span>
+                </td>
+                <td>{{ req.date_range_start }} to {{ req.date_range_end }}</td>
+                <td>
+                  <span class="badge-pill {% if req.status == 'acknowledged' %}badge-active{% elif req.status == 'pending' %}badge-pending{% else %}badge-inactive{% endif %}">
+                    {{ req.get_status_display }}
+                  </span>
+                </td>
+                <td class="text-end">
+                  {% if req.can_be_cancelled_by_employee %}
+                  <form method="post" action="{% url 'requests_app:my_request_cancel' req.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Cancel this request?')">Cancel</button>
+                  </form>
+                  {% else %}
+                  <span class="text-muted small">—</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="empty-state py-4 text-center text-muted">
+          <i class="bi bi-calendar-x fs-2"></i>
+          <p class="mt-2 mb-0">You have not submitted any requests yet.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'requests_app/js/my_requests.js' %}"></script>
+{% endblock %}
