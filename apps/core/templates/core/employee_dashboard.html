@@ -219,7 +219,7 @@
       <div class="card h-100 shadow-sm border border-secondary-subtle bg-body">
         <div class="card-header bg-body-tertiary border-bottom py-2.5 px-3 d-flex justify-content-between align-items-center">
           <h2 class="h6 mb-0 fw-bold text-body"><i class="bi bi-clock-history me-2 text-warning"></i>My Recent Token Activity Log</h2>
-          <a href="{% url 'tokens:employee_history' %}" class="btn btn-sm btn-outline-warning text-dark fw-bold">Full Log</a>
+          <a href="{% url 'reports:my_token_report' %}" class="btn btn-sm btn-outline-warning text-dark fw-bold">Full Log</a>
         </div>
         <div class="card-body p-0">
           <div class="table-responsive">
@@ -286,7 +286,7 @@
                 </div>
               </div>
             </div>
-            <a href="{% url 'billing:detail' latest_bill.pk %}" class="btn btn-primary fw-bold w-100 shadow-sm">
+            <a href="{% url 'billing:my_bill_detail' latest_bill.pk %}" class="btn btn-primary fw-bold w-100 shadow-sm">
               <i class="bi bi-eye-fill me-1"></i>View Full Invoice Detail
             </a>
           {% else %}
@@ -312,7 +312,7 @@
 
         {# 1. My Token Issuance History #}
         <div class="col-6 col-md-4 col-lg-3">
-          <a href="{% url 'tokens:employee_history' %}" class="quick-action-card border p-3 rounded-3 d-block text-decoration-none text-body bg-body-tertiary hover-lift">
+          <a href="{% url 'reports:my_token_report' %}" class="quick-action-card border p-3 rounded-3 d-block text-decoration-none text-body bg-body-tertiary hover-lift">
             <div class="rounded-circle bg-warning-subtle text-warning p-2 text-center mx-auto mb-2" style="width:42px;height:42px;">
               <i class="bi bi-clock-history fs-5"></i>
             </div>

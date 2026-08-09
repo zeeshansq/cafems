@@ -95,7 +95,7 @@ class TeaItemToggleView(StaffRequiredMixin, View):
 
 # ── Lunch Menu Plan ──────────────────────────────────────────────────────────
 
-class LunchPlanView(StaffRequiredMixin, ListView):
+class LunchPlanView(LoginRequiredMixin, ListView):
     model = LunchMenuPlan
     template_name = "menu/lunch_plan.html"
     context_object_name = "plans"

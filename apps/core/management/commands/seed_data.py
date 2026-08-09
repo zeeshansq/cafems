@@ -257,62 +257,86 @@ class Command(BaseCommand):
         # ── 6. Employees Roster & User Accounts ──────────────────────────────
         self.stdout.write(self.style.WARNING("\n[STEP 7/14] Generating Pakistani Employee Members Roster..."))
         all_pk_names = PK_MALE_NAMES + PK_FEMALE_NAMES
-        random.shuffle(all_pk_names)
 
         employees = []
         pno_counter = 1001
+
+        # Unlink old user mappings to allow clean deterministic re-linking
+        Employee.objects.filter(tenant=demo_tenant).update(user=None)
 
         for first_n, last_n in all_pk_names:
             pno_str = f"P-{pno_counter}"
             email_str = f"{first_n.lower()}.{last_n.lower()}@democafe.com"
 
-            user_obj, created = User.objects.get_or_create(
+            user_obj, _ = User.objects.get_or_create(
                 email=email_str,
                 defaults={
                     "first_name": first_n,
                     "last_name": last_n,
+                    "username": email_str,
                     "role": UserRole.EMPLOYEE,
                     "tenant": demo_tenant,
                 }
             )
+            user_obj.first_name = first_n
+            user_obj.last_name = last_n
             user_obj.tenant = demo_tenant
             user_obj.role = UserRole.EMPLOYEE
             user_obj.set_password("user123!@#")
             user_obj.save()
 
-            is_non_member = (pno_counter % 8 == 0)
-            if is_non_member:
+            if pno_counter % 8 == 0:
                 mem_status = False
                 mem_type = MembershipType.NOT_MEMBER
+            elif pno_counter % 6 == 0:
+                mem_status = True
+                mem_type = MembershipType.TEMP_CLOSE
+            elif pno_counter % 4 == 0:
+                mem_status = True
+                mem_type = MembershipType.ROTI_OPEN
             else:
                 mem_status = True
-                mem_type = random.choice([MembershipType.FULL_OPEN, MembershipType.FULL_OPEN, MembershipType.ROTI_OPEN, MembershipType.TEMP_CLOSE])
+                mem_type = MembershipType.FULL_OPEN
 
-            desig, cat = random.choice(DESIGNATIONS)
-            dept = random.choice(departments)
+            desig, cat = DESIGNATIONS[pno_counter % len(DESIGNATIONS)]
+            dept = departments[pno_counter % len(departments)]
 
-            emp_obj, _ = Employee.objects.get_or_create(
-                tenant=demo_tenant,
-                pno=pno_str,
-                defaults={
-                    "user": user_obj,
-                    "register_number": f"REG-{pno_counter}",
-                    "full_name": f"{first_n} {last_n}",
-                    "email": email_str,
-                    "mobile": f"+92-300-{random.randint(1000000, 9999999)}",
-                    "telephone_extension": str(random.randint(100, 999)),
-                    "gender": "M" if (first_n, last_n) in PK_MALE_NAMES else "F",
-                    "designation": desig,
-                    "category": cat,
-                    "department": dept,
-                    "date_joined": timezone.now().date() - timedelta(days=random.randint(60, 1000)),
-                    "membership_status": mem_status,
-                    "membership_type": mem_type,
-                    "security_deposit_paid": Decimal("1000.00") if mem_status else Decimal("0.00"),
-                    "security_deposit_pending": Decimal("0.00"),
-                    "is_active": True,
-                }
-            )
+            # Lookup by P-No first to preserve unique tenant_id + pno constraint
+            emp_obj = Employee.objects.filter(tenant=demo_tenant, pno=pno_str).first()
+
+            if emp_obj:
+                emp_obj.user = user_obj
+                emp_obj.pno = pno_str
+                emp_obj.full_name = f"{first_n} {last_n}"
+                emp_obj.email = email_str
+                emp_obj.membership_status = mem_status
+                emp_obj.membership_type = mem_type
+                emp_obj.designation = desig
+                emp_obj.category = cat
+                emp_obj.department = dept
+                emp_obj.save()
+            else:
+                emp_obj = Employee.objects.create(
+                    tenant=demo_tenant,
+                    user=user_obj,
+                    pno=pno_str,
+                    register_number=f"REG-{pno_counter}",
+                    full_name=f"{first_n} {last_n}",
+                    email=email_str,
+                    mobile=f"+92-300-{1000000 + pno_counter}",
+                    telephone_extension=str(100 + (pno_counter % 900)),
+                    gender="M" if (first_n, last_n) in PK_MALE_NAMES else "F",
+                    designation=desig,
+                    category=cat,
+                    department=dept,
+                    date_joined=timezone.now().date() - timedelta(days=365),
+                    membership_status=mem_status,
+                    membership_type=mem_type,
+                    security_deposit_paid=Decimal("1000.00") if mem_status else Decimal("0.00"),
+                    security_deposit_pending=Decimal("0.00"),
+                    is_active=True,
+                )
+
             employees.append(emp_obj)
 
             credentials.append({
@@ -341,11 +365,15 @@ class Command(BaseCommand):
         roti_naan, _ = RotiPrice.objects.get_or_create(tenant=demo_tenant, roti_type="naan", defaults={"name": "Tandoori Naan", "price": Decimal("20.00"), "is_active": True})
         self.stdout.write(self.style.SUCCESS("  -> Cooks, Sweets, and Roti prices configured."))
 
-        # ── 8. Generic Master 5-Week Lunch Menu Plans ──────────────────────────
-        self.stdout.write(self.style.WARNING("\n[STEP 9/14] Seeding Master Weekly 5-Month Lunch Menu Plans..."))
+        # ── 8. Generic Master 5-Week Lunch Menu Plans (Mon-Fri only) ─────────────
+        self.stdout.write(self.style.WARNING("\n[STEP 9/14] Seeding Master Weekly 5-Month Lunch Menu Plans (Mon-Fri)..."))
+        # Delete any existing weekend master plans (Saturday=5, Sunday=6)
+        LunchMenuPlan.objects.filter(tenant=demo_tenant, day_of_week__in=[5, 6]).delete()
+
+        plan_count = 0
         for week_idx in range(1, 6):
-            for day_idx in range(7):
-                dish_name, desc, has_sweet, r_type = DISHES_DATA[(week_idx * 7 + day_idx) % len(DISHES_DATA)]
+            for day_idx in range(5):  # Mon-Fri (0-4) only
+                dish_name, desc, has_sweet, r_type = DISHES_DATA[(week_idx * 5 + day_idx) % len(DISHES_DATA)]
                 LunchMenuPlan.objects.get_or_create(
                     tenant=demo_tenant,
                     week_of_month=week_idx,
@@ -361,7 +389,8 @@ class Command(BaseCommand):
                         "is_published": True,
                     }
                 )
-        self.stdout.write(self.style.SUCCESS("  -> 35 Master Lunch Menu Plans active."))
+                plan_count += 1
+        self.stdout.write(self.style.SUCCESS(f"  -> {plan_count} Master Lunch Menu Plans active (Mon-Fri)."))
 
         # ── 9. Tea & Snack POS Items & Counter Sales ─────────────────────────
         self.stdout.write(self.style.WARNING("\n[STEP 10/14] Seeding POS Item Catalog & Counter Sales History..."))

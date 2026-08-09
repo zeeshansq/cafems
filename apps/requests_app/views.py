@@ -74,17 +74,8 @@ class RequestAcknowledgeView(StaffRequiredMixin, View):
             req.acknowledged_at = timezone.now()
             req.save(update_fields=["status", "acknowledged_by", "acknowledged_at"])
 
-            # Apply membership change
-            employee = req.employee
-            if req.request_type == RequestType.OPEN:
-                if employee.membership_type == "temp_close":
-                    employee.membership_type = "full_open"
-                    employee.save(update_fields=["membership_type"])
-            elif req.request_type == RequestType.CLOSE:
-                employee.membership_type = "temp_close"
-                employee.save(update_fields=["membership_type"])
-
             # Notify employee
+            employee = req.employee
             if employee.user:
                 from apps.notifications.services import create_notification
                 from apps.notifications.models import NotificationType
@@ -182,7 +173,6 @@ class MyRequestCreateView(LoginRequiredMixin, CreateView):
             return redirect("requests_app:my_requests")
 
         form.instance.tenant = tenant
-        form.instance.full_clean()  # trigger model-level cutoff validation
         messages.success(self.request, "Request submitted successfully.")
 
         # Notify staff

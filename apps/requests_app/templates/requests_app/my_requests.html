@@ -5,92 +5,242 @@
 
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'requests_app/css/my_requests.css' %}">
+  <style>
+    .guide-card-premium {
+      background: linear-gradient(135deg, rgba(13, 110, 253, 0.05) 0%, rgba(25, 135, 84, 0.05) 100%);
+      border: 1px solid rgba(13, 110, 253, 0.15);
+      border-radius: var(--radius-lg, 12px);
+    }
+    .guide-step-badge {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+  </style>
 {% endblock %}
 
 {% block content %}
-<div class="page-header">
+<div class="page-header mb-4">
   <div>
-    <h1 class="page-header-title">My Open / Close Requests</h1>
-    <p class="page-header-subtitle">Submit or track your cafeteria token status change requests.</p>
+    <h1 class="page-header-title">
+      <i class="bi bi-arrow-left-right text-primary me-2"></i>My Open / Close Token Requests
+    </h1>
+    <p class="page-header-subtitle">Request to pause (close) or resume/add (open) daily cafeteria lunch tokens.</p>
   </div>
 </div>
 
 <div class="row g-4">
-  <div class="col-md-5">
-    <div class="card" id="cardNewRequest">
-      <div class="card-header"><h2 class="card-title"><i class="bi bi-plus-circle me-2 text-primary"></i>Submit New Request</h2></div>
-      <div class="card-body">
-        <div class="alert alert-info py-2 small" role="alert">
-          <i class="bi bi-info-circle me-1"></i><strong>Notice:</strong> Requests must be submitted at least 1 day prior by 2:00 PM PKT cutoff time.
-        </div>
+  {# ── Left Column: Form & Guidelines Card ───────────────────────────── #}
+  <div class="col-lg-5">
 
-        <form method="post" action="{% url 'requests_app:my_request_create' %}" id="newRequestForm">
+    {# 1. Submission Form Card #}
+    <div class="card shadow-sm border-0 rounded-3 mb-4" id="cardNewRequest">
+      <div class="card-header bg-body-tertiary border-bottom py-3">
+        <h2 class="card-title h6 mb-0 fw-bold text-body">
+          <i class="bi bi-plus-circle-fill me-2 text-primary"></i>Submit New Request
+        </h2>
+      </div>
+      <div class="card-body p-4">
+        
+        {% if form.errors %}
+          <div class="alert alert-danger py-2 px-3 small mb-3 rounded-3">
+            <div class="fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-1.5"></i>Submission Error:</div>
+            {% for error in form.non_field_errors %}
+              <div>{{ error }}</div>
+            {% endfor %}
+            {% for field in form %}
+              {% for error in field.errors %}
+                <div><strong>{{ field.label }}:</strong> {{ error }}</div>
+              {% endfor %}
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <form method="post" action="{% url 'requests_app:my_request_create' %}" id="newRequestForm" x-data="{ reqType: '{{ form.request_type.value|default:'open' }}' }">
           {% csrf_token %}
+          
           <div class="mb-3">
-            <label for="{{ form.request_type.id_for_label }}" class="form-label fw-bold">Request Type</label>
-            {{ form.request_type }}
+            <label for="{{ form.request_type.id_for_label }}" class="form-label fw-bold">
+              Request Action <span class="text-danger">*</span>
+            </label>
+            <select name="request_type" id="id_request_type" class="form-select fw-semibold" x-model="reqType">
+              <option value="open">🟢 Open (Resume Membership / Extra Tokens)</option>
+              <option value="close">🛑 Close (Pause Membership / On Leave)</option>
+            </select>
           </div>
-          <div class="mb-3" id="tokenQtyGroup">
-            <label for="{{ form.requested_token_qty.id_for_label }}" class="form-label fw-bold">Requested Token Qty (1-5)</label>
-            {{ form.requested_token_qty }}
+
+          {# Requested Token Qty (Dynamic: Only shown for OPEN requests) #}
+          <div class="mb-3 p-3 bg-body-tertiary rounded border border-primary-subtle" id="tokenQtyGroup" x-show="reqType === 'open'" x-transition>
+            <label for="{{ form.requested_token_qty.id_for_label }}" class="form-label fw-bold text-primary">
+              <i class="bi bi-ticket-perforated me-1"></i>Requested Token Qty per Day (1 – 3)
+            </label>
+            <input type="number" name="requested_token_qty" id="id_req_token_qty" class="form-control font-monospace fw-bold" min="1" max="3" value="{{ form.requested_token_qty.value|default:1 }}">
+            <div class="form-text text-body-secondary small mt-1">
+              <i class="bi bi-info-circle me-1"></i>Maximum <strong>3 tokens</strong> allowed per request. If you already have 1 daily token, selecting 2 means 2 total tokens for that day.
+            </div>
           </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label for="{{ form.date_range_start.id_for_label }}" class="form-label fw-bold">
+                Start Date <span class="text-danger">*</span>
+              </label>
+              {{ form.date_range_start }}
+            </div>
+            <div class="col-6">
+              <label for="{{ form.date_range_end.id_for_label }}" class="form-label fw-bold">
+                End Date <span class="text-danger">*</span>
+              </label>
+              {{ form.date_range_end }}
+            </div>
+          </div>
+
           <div class="mb-3">
-            <label for="{{ form.date_range_start.id_for_label }}" class="form-label fw-bold">Start Date</label>
-            {{ form.date_range_start }}
-          </div>
-          <div class="mb-3">
-            <label for="{{ form.date_range_end.id_for_label }}" class="form-label fw-bold">End Date</label>
-            {{ form.date_range_end }}
-          </div>
-          <div class="mb-3">
-            <label for="{{ form.reason.id_for_label }}" class="form-label fw-bold">Reason (Optional)</label>
+            <label for="{{ form.reason.id_for_label }}" class="form-label fw-bold">
+              Reason <span class="text-danger">* (Required)</span>
+            </label>
             {{ form.reason }}
+            {% if form.reason.errors %}
+              <div class="text-danger small mt-1">{{ form.reason.errors.0 }}</div>
+            {% endif %}
+            <div class="form-text text-body-secondary small">Provide a clear explanation (e.g., Annual Leave, Remote Duty, Official Travel).</div>
           </div>
-          <button type="submit" class="btn btn-primary w-100 fw-bold" id="btnSubmitRequest">
-            <i class="bi bi-send me-1"></i>Submit Request
+
+          <button type="submit" class="btn btn-primary w-100 fw-bold py-2 shadow-sm" id="btnSubmitRequest">
+            <i class="bi bi-send-fill me-1"></i>Submit Request
           </button>
         </form>
       </div>
     </div>
+
+    {# 2. Premium Policy & Instruction Guide Card #}
+    <div class="card guide-card-premium p-4 shadow-sm">
+      <h3 class="h6 fw-bold text-body mb-3 d-flex align-items-center">
+        <i class="bi bi-lightbulb-fill text-warning fs-5 me-2"></i>Token Request Rules & Policy Guide
+      </h3>
+
+      <div class="d-flex align-items-start gap-3 mb-3">
+        <span class="guide-step-badge bg-primary text-white flex-shrink-0">1</span>
+        <div>
+          <div class="fw-bold text-body small">⏰ 2:00 PM PKT Daily Cutoff</div>
+          <div class="text-body-secondary small">Requests for tomorrow must be submitted <strong>at least 1 day prior by 2:00 PM PKT</strong>. Late submissions cannot be processed for next day.</div>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-start gap-3 mb-3">
+        <span class="guide-step-badge bg-danger text-white flex-shrink-0">2</span>
+        <div>
+          <div class="fw-bold text-danger small">🛑 Close (Pause Membership)</div>
+          <div class="text-body-secondary small">Temporarily stops daily token generation for selected dates. You won't be charged for unissued days. <em>(Staff can still issue token at counter via override if you return early)</em>.</div>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-start gap-3 mb-3">
+        <span class="guide-step-badge bg-success text-white flex-shrink-0">3</span>
+        <div>
+          <div class="fw-bold text-success small">🟢 Open (Resume / Extra Tokens)</div>
+          <div class="text-body-secondary small">Resumes token service or sets custom token count up to <strong>max 3 tokens/day</strong>. Pre-fills your requested token count at counter.</div>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-start gap-3">
+        <span class="guide-step-badge bg-secondary text-white flex-shrink-0">4</span>
+        <div>
+          <div class="fw-bold text-body small">📝 Reason Required</div>
+          <div class="text-body-secondary small">Detailed reason is mandatory for audit log compliance and administrative approval.</div>
+        </div>
+      </div>
+
+    </div>
+
   </div>
 
-  <div class="col-md-7">
-    <div class="card" id="cardMyRequestsList">
-      <div class="card-header"><h2 class="card-title"><i class="bi bi-clock-history me-2"></i>My Submission History</h2></div>
+  {# ── Right Column: My Submission History ───────────────────────────── #}
+  <div class="col-lg-7">
+    <div class="card shadow-sm border-0 rounded-3 overflow-hidden" id="cardMyRequestsList">
+      <div class="card-header bg-body-tertiary border-bottom py-3 d-flex justify-content-between align-items-center">
+        <h2 class="card-title h6 mb-0 fw-bold text-body">
+          <i class="bi bi-clock-history me-2 text-primary"></i>My Request Submission History
+        </h2>
+        <span class="badge bg-secondary-subtle text-body font-monospace">{{ requests|length }} Total Requests</span>
+      </div>
       <div class="card-body p-0">
         {% if requests %}
         <div class="table-responsive">
-          <table class="table mb-0">
-            <thead>
+          <table class="table table-hover align-middle mb-0 text-nowrap">
+            <thead class="bg-body-tertiary text-uppercase small text-body-secondary">
               <tr>
-                <th>Type</th>
+                <th class="ps-4">Request Type</th>
                 <th>Dates</th>
+                <th>Qty</th>
+                <th>Reason</th>
                 <th>Status</th>
-                <th class="text-end">Action</th>
+                <th class="text-end pe-4">Action</th>
               </tr>
             </thead>
             <tbody>
               {% for req in requests %}
               <tr>
+                <td class="ps-4">
+                  {% if req.request_type == 'open' %}
+                    <span class="badge bg-success-subtle text-success border px-2 py-1">
+                      <i class="bi bi-unlock-fill me-1"></i>OPEN
+                    </span>
+                  {% else %}
+                    <span class="badge bg-danger-subtle text-danger border px-2 py-1">
+                      <i class="bi bi-lock-fill me-1"></i>CLOSE
+                    </span>
+                  {% endif %}
+                </td>
+                <td class="font-monospace fw-bold text-body">
+                  {{ req.date_range_start|date:"d-M-Y" }} → {{ req.date_range_end|date:"d-M-Y" }}
+                </td>
+                <td class="font-monospace text-center">
+                  {% if req.request_type == 'open' %}
+                    <span class="badge bg-primary-subtle text-primary border">{{ req.requested_token_qty }}</span>
+                  {% else %}
+                    <span class="text-body-secondary small">—</span>
+                  {% endif %}
+                </td>
                 <td>
-                  <span class="badge {% if req.request_type == 'open' %}bg-success{% else %}bg-danger{% endif %}">
-                    {{ req.get_request_type_display|upper }}
+                  <span class="text-body small d-inline-block text-truncate" style="max-width:180px;" title="{{ req.reason }}">
+                    {{ req.reason|default:"—" }}
                   </span>
                 </td>
-                <td>{{ req.date_range_start }} to {{ req.date_range_end }}</td>
                 <td>
-                  <span class="badge-pill {% if req.status == 'acknowledged' %}badge-active{% elif req.status == 'pending' %}badge-pending{% else %}badge-inactive{% endif %}">
-                    {{ req.get_status_display }}
-                  </span>
+                  {% if req.status == 'acknowledged' %}
+                    <span class="badge bg-success text-white px-2 py-1">
+                      <i class="bi bi-check-circle-fill me-1"></i>Acknowledged
+                    </span>
+                  {% elif req.status == 'pending' %}
+                    <span class="badge bg-warning text-dark px-2 py-1">
+                      <i class="bi bi-hourglass-split me-1"></i>Pending
+                    </span>
+                  {% elif req.status == 'rejected' %}
+                    <span class="badge bg-danger text-white px-2 py-1" title="{{ req.rejection_reason }}">
+                      <i class="bi bi-x-circle-fill me-1"></i>Rejected
+                    </span>
+                  {% else %}
+                    <span class="badge bg-secondary text-white px-2 py-1">
+                      Cancelled
+                    </span>
+                  {% endif %}
                 </td>
-                <td class="text-end">
+                <td class="text-end pe-4">
                   {% if req.can_be_cancelled_by_employee %}
                   <form method="post" action="{% url 'requests_app:my_request_cancel' req.pk %}" class="d-inline">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Cancel this request?')">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-outline-danger fw-semibold px-2 py-1" onclick="return confirm('Are you sure you want to cancel this request?')">
+                      Cancel
+                    </button>
                   </form>
                   {% else %}
-                  <span class="text-muted small">—</span>
+                  <span class="text-body-secondary small">—</span>
                   {% endif %}
                 </td>
               </tr>
@@ -99,9 +249,9 @@
           </table>
         </div>
         {% else %}
-        <div class="empty-state py-4 text-center text-muted">
-          <i class="bi bi-calendar-x fs-2"></i>
-          <p class="mt-2 mb-0">You have not submitted any requests yet.</p>
+        <div class="empty-state py-5 text-center text-body-secondary">
+          <i class="bi bi-calendar-x fs-1 text-muted mb-2 d-block"></i>
+          <p class="mb-0">You have not submitted any open/close requests yet.</p>
         </div>
         {% endif %}
       </div>

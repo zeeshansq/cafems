@@ -1,38 +1,53 @@
-# CafeMS Requirements
-# Core
-django>=5.2,<6.0
+# ============================================================
+# CafeMS – Enterprise Cafeteria Management System
+# Python Requirements File
+# ============================================================
+# Install: pip install -r requirements.txt
+# ============================================================
+
+# ── Core Django Framework ────────────────────────────────────
+Django>=5.2,<7.0
+asgiref>=3.12
+
+# ── REST API ─────────────────────────────────────────────────
 djangorestframework>=3.15
+
+# ── Environment / Configuration ──────────────────────────────
 django-environ>=0.11
+python-dotenv>=1.2
 
-# Multi-tenancy (for PostgreSQL production)
-# django-tenants>=3.6
-
-# Async tasks
+# ── Async Task Queue (Celery + Redis) ─────────────────────────
 celery>=5.4
 redis>=5.0
 django-celery-beat>=2.7
 django-celery-results>=2.5
+django-timezone-field>=7.2
 
-# Frontend helpers
+# ── Frontend Helpers ──────────────────────────────────────────
 django-htmx>=1.21
 
-# PDF/Excel
+# ── PDF / Excel Export ───────────────────────────────────────
 openpyxl>=3.1
 weasyprint>=62.0
+lxml>=5.0
+lxml-html-clean>=0.4
 
-# Images
+# ── Image Processing ─────────────────────────────────────────
 Pillow>=10.4
 
-# Auth/Security
-# django-allauth>=65.0
+# ── Utilities ─────────────────────────────────────────────────
+django-extensions>=3.2
+python-dateutil>=2.9
+sqlparse>=0.5
 
-# Dev/Testing
+# ── Dev / Testing ─────────────────────────────────────────────
+pytest>=8.0
 pytest-django>=4.9
 pytest-cov>=6.0
 factory-boy>=3.3
+Faker>=20.0
+
+# ── Code Quality / Linting ────────────────────────────────────
 black>=24.0
 isort>=5.13
 ruff>=0.4
-
-# Utilities
-django-extensions>=3.2

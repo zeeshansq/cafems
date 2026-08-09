@@ -566,7 +566,10 @@ class AddMiscChargeView(AdminRequiredMixin, TemplateView):
 
 # ── Employee: My Bills ───────────────────────────────────────────────────────
 
-class MyBillsView(LoginRequiredMixin, ListView):
+from apps.core.mixins import StaffRequiredMixin, EmployeeRequiredMixin
+
+
+class MyBillsView(EmployeeRequiredMixin, ListView):
     model = MonthlyBill
     template_name = "billing/my_bills.html"
     context_object_name = "bills"
@@ -586,7 +589,7 @@ class MyBillsView(LoginRequiredMixin, ListView):
         ).order_by("-period_start")
 
 
-class MyBillDetailView(LoginRequiredMixin, DetailView):
+class MyBillDetailView(EmployeeRequiredMixin, DetailView):
     model = MonthlyBill
     template_name = "billing/my_bill_detail.html"
     context_object_name = "bill"

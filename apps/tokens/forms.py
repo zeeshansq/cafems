@@ -28,20 +28,6 @@ class TokenIssueForm(forms.Form):
     def __init__(self, *args, tenant=None, **kwargs):
         super().__init__(*args, **kwargs)
         if tenant:
-            from django.db.models import Q
-            from django.utils import timezone
-            from apps.requests_app.models import TokenOpenCloseRequest, RequestType, RequestStatus
-            today = timezone.localdate()
-            open_reqs = TokenOpenCloseRequest.objects.filter(
-                tenant=tenant,
-                request_type=RequestType.OPEN,
-                status=RequestStatus.ACKNOWLEDGED,
-                date_range_start__lte=today,
-                date_range_end__gte=today,
-            ).values_list("employee_id", flat=True)
-
             self.fields["employee"].queryset = Employee.objects.filter(
                 tenant=tenant, is_active=True
-            ).filter(
-                Q(membership_status=True) | Q(pk__in=open_reqs)
-            ).distinct().order_by("full_name")
+            ).order_by("full_name")

@@ -56,7 +56,7 @@ class TokenIssueView(StaffRequiredMixin, TemplateView):
         close_reqs = TokenOpenCloseRequest.objects.filter(
             tenant=tenant,
             request_type=RequestType.CLOSE,
-            status__in=[RequestStatus.ACKNOWLEDGED, RequestStatus.PENDING],
+            status=RequestStatus.ACKNOWLEDGED,
             date_range_start__lte=target_date,
             date_range_end__gte=target_date,
         )
@@ -66,7 +66,7 @@ class TokenIssueView(StaffRequiredMixin, TemplateView):
         open_reqs = TokenOpenCloseRequest.objects.filter(
             tenant=tenant,
             request_type=RequestType.OPEN,
-            status__in=[RequestStatus.ACKNOWLEDGED, RequestStatus.PENDING],
+            status=RequestStatus.ACKNOWLEDGED,
             date_range_start__lte=target_date,
             date_range_end__gte=target_date,
         )
@@ -75,8 +75,6 @@ class TokenIssueView(StaffRequiredMixin, TemplateView):
 
         eligible_employees = (
             Employee.objects.filter(tenant=tenant, is_active=True)
-            .filter(Q(membership_status=True) | Q(pk__in=open_requests_today))
-            .distinct()
             .select_related("department")
             .order_by("full_name")
         )
@@ -103,12 +101,14 @@ class TokenIssueView(StaffRequiredMixin, TemplateView):
                 "membership_code": emp.membership_type,
                 "has_close_request": bool(close_req),
                 "close_request_details": {
+                    "id": close_req.pk,
                     "start_date": close_req.date_range_start.strftime("%b. %d, %Y"),
                     "end_date": close_req.date_range_end.strftime("%b. %d, %Y"),
                     "reason": close_req.reason,
                 } if close_req else None,
                 "has_open_request": bool(open_req),
                 "open_request_details": {
+                    "id": open_req.pk,
                     "requested_token_qty": open_req.requested_token_qty,
                     "start_date": open_req.date_range_start.strftime("%b. %d, %Y"),
                     "end_date": open_req.date_range_end.strftime("%b. %d, %Y"),
@@ -203,17 +203,23 @@ class TokenIssueView(StaffRequiredMixin, TemplateView):
             messages.error(request, msg)
             return redirect(f"/tokens/issue/?date={target_date}" if target_date != today else "tokens:issue")
 
-        # Check Close Requests for target_date
+        # Check Acknowledged Close Requests for target_date
         from apps.requests_app.models import TokenOpenCloseRequest, RequestType, RequestStatus
-        close_requests_today = list(TokenOpenCloseRequest.objects.filter(
+        close_req = TokenOpenCloseRequest.objects.filter(
             tenant=tenant,
+            employee=employee,
             request_type=RequestType.CLOSE,
-            status__in=[RequestStatus.ACKNOWLEDGED, RequestStatus.PENDING],
+            status=RequestStatus.ACKNOWLEDGED,
             date_range_start__lte=target_date,
             date_range_end__gte=target_date,
-        ).values_list("employee_id", flat=True))
+        ).first()
 
-        is_temp_close = (employee.membership_type == MembershipType.TEMP_CLOSE or (employee.pk in close_requests_today and not employee.is_roti_open))
+        if close_req and not is_roti_override:
+            msg = f"Issuance Restricted: Token service is Closed via Request #{close_req.pk} for {employee.full_name} ({close_req.date_range_start} to {close_req.date_range_end}). Authorize Staff Override to issue."
+            if request.headers.get("HX-Request"):
+                return JsonResponse({"error": msg}, status=400)
+            messages.error(request, msg)
+            return redirect(f"/tokens/issue/?date={target_date}" if target_date != today else "tokens:issue")
 
         # Check Roti-Open lock (staff override is ONLY required if requesting Lunch Tokens or Extra Sweet)
         if employee.is_roti_open and (token_qty > 0 or extra_sweet > 0) and not is_roti_override:
@@ -427,25 +433,25 @@ class DailyClosingReportView(StaffRequiredMixin, TemplateView):
 
         # All full-open members + temp-close with an open request for this date
         from apps.requests_app.models import TokenOpenCloseRequest, RequestType, RequestStatus
-        open_requests = TokenOpenCloseRequest.objects.filter(
+        open_requests = list(TokenOpenCloseRequest.objects.filter(
             tenant=tenant,
             request_type=RequestType.OPEN,
             status=RequestStatus.ACKNOWLEDGED,
             date_range_start__lte=report_date,
             date_range_end__gte=report_date,
-        ).values_list("employee_id", flat=True)
+        ).values_list("employee_id", flat=True))
 
-        close_requests = TokenOpenCloseRequest.objects.filter(
+        close_requests = list(TokenOpenCloseRequest.objects.filter(
             tenant=tenant,
             request_type=RequestType.CLOSE,
-            status__in=[RequestStatus.ACKNOWLEDGED, RequestStatus.PENDING],
+            status=RequestStatus.ACKNOWLEDGED,
             date_range_start__lte=report_date,
             date_range_end__gte=report_date,
-        ).values_list("employee_id", flat=True)
+        ).values_list("employee_id", flat=True))
 
         expected = Employee.objects.filter(
-            Q(tenant=tenant, is_active=True, membership_type=MembershipType.FULL_OPEN)
-            | Q(pk__in=open_requests, tenant=tenant)
+            Q(tenant=tenant, is_active=True, membership_status=True)
+            | Q(pk__in=open_requests, tenant=tenant, is_active=True)
         ).exclude(pk__in=close_requests)
 
         issued_ids = list(LunchToken.objects.filter(
@@ -463,6 +469,7 @@ class DailyClosingReportView(StaffRequiredMixin, TemplateView):
             "report_date": report_date,
             "today": today,
             "is_admin": is_admin,
+            "expected_employees": expected,
             "missing_employees": missing,
             "charged_tokens": charged_tokens,
             "issued_count": len(issued_ids),
@@ -532,7 +539,7 @@ class ChargeTokenView(StaffRequiredMixin, View):
         return self._process_charge(request, employee_id)
 
 
-class EmployeeTokenHistoryView(LoginRequiredMixin, TemplateView):
+class EmployeeTokenHistoryView(StaffRequiredMixin, TemplateView):
     """
     Token issuance history log.
     Staff/Admin can filter by any employee; regular employee members see their own history.
