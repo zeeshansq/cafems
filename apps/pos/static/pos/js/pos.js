@@ -227,24 +227,42 @@ function posCart() {
       return filtered.length > 0 ? filtered : [5000];
     },
 
+    get isAmountMissing() {
+      return !this.amountPaid || this.amountPaid <= 0;
+    },
+
     get isInsufficientPaid() {
       return (this.amountPaid > 0) && (this.amountPaid < this.total);
     },
 
     get isCheckoutDisabled() {
       if (this.loading || this.cart.length === 0) return true;
-      if (this.isInsufficientPaid) return true;
+      if (this.isAmountMissing || this.isInsufficientPaid) return true;
       return false;
     },
 
     async submitSale() {
-      if (this.cart.length === 0 || this.isCheckoutDisabled) return;
+      if (this.cart.length === 0) return;
+
+      if (this.isAmountMissing) {
+        showToast('Checkout Restricted: Please enter cash amount paid or click "Exact" tender button.', 'danger');
+        const input = document.getElementById('posAmountPaidInput');
+        if (input) input.focus();
+        return;
+      }
+
+      if (this.isInsufficientPaid) {
+        showToast(`Checkout Restricted: Insufficient cash! Bill is PKR ${this.total.toFixed(2)}, but amount paid is PKR ${this.amountPaid.toFixed(2)}.`, 'danger');
+        const input = document.getElementById('posAmountPaidInput');
+        if (input) input.focus();
+        return;
+      }
+
+      if (this.isCheckoutDisabled) return;
       this.loading = true;
 
       const itemsPayload = [...this.cart];
-      const totalVal = this.total;
-      const paidVal = this.amountPaid || totalVal;
-      const buyerName = this.employee ? this.employee.full_name : 'Walk-in Cash Customer';
+      const paidVal = parseFloat(this.amountPaid);
 
       try {
         const response = await fetch('/pos/submit/', {

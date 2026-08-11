@@ -45,6 +45,7 @@ class POSView(StaffRequiredMixin, TemplateView):
                 "designation": emp.designation or "Staff",
                 "initials": emp.full_name[:2].upper() if emp.full_name else "EM",
                 "photo_url": emp.photo.url if emp.photo else None,
+                "membership_status": emp.membership_status,
             }
             for emp in employees
         ]
@@ -155,11 +156,25 @@ class POSSubmitView(StaffRequiredMixin, View):
             total += item_total
             created_sales.append({"id": sale.pk, "item": item.name, "qty": qty})
 
-        if amount_paid <= 0 or amount_paid < total:
-            amount_paid = total
+        try:
+            amount_paid_dec = Decimal(str(amount_paid or 0))
+        except (ValueError, TypeError):
+            amount_paid_dec = Decimal("0.00")
 
-        change = float(Decimal(str(amount_paid)) - total)
-        receipt_url = reverse_lazy("pos:receipt", kwargs={"order_ref": order_ref})
+        if amount_paid_dec <= 0 or amount_paid_dec < total:
+            return JsonResponse({
+                "error": f"Checkout restricted: Amount paid (PKR {amount_paid_dec:.2f}) must be greater than or equal to total bill (PKR {total:.2f})."
+            }, status=400)
+
+        change = float(amount_paid_dec - total)
+
+        # Update note on created sales to persist Tendered cash and Change
+        for sale_dict in created_sales:
+            TeaItemSale.objects.filter(pk=sale_dict["id"]).update(
+                note=f"Tendered:{amount_paid_dec:.2f}|Change:{change:.2f}"
+            )
+
+        receipt_url = f"{reverse_lazy('pos:receipt', kwargs={'order_ref': order_ref})}?paid={amount_paid_dec:.2f}&change={change:.2f}"
 
         return JsonResponse({
             "status": "ok",
@@ -167,7 +182,7 @@ class POSSubmitView(StaffRequiredMixin, View):
             "receipt_url": str(receipt_url),
             "sales_count": len(created_sales),
             "total": float(total),
-            "amount_paid": float(amount_paid),
+            "amount_paid": float(amount_paid_dec),
             "change": max(0, change),
             "items": created_sales,
             "buyer": buyer.full_name if buyer else "Walk-in Customer",
@@ -235,8 +250,31 @@ class POSThermalReceiptView(StaffRequiredMixin, TemplateView):
 
         sales = get_order_sales_queryset(tenant, order_ref).select_related("item", "buyer", "issued_by")
         first_sale = sales.first()
-        total_amt = sum(s.amount_paid for s in sales) if sales else Decimal("0.00")
+        total_amt = sum(s.quantity * s.unit_price for s in sales) if sales else Decimal("0.00")
         total_qty = sum(s.quantity for s in sales) if sales else 0
+
+        change_return = Decimal("0.00")
+        amount_tendered = total_amt
+
+        # 1. Try URL parameters first
+        paid_param = self.request.GET.get("paid")
+        change_param = self.request.GET.get("change")
+        if change_param is not None:
+            try:
+                change_return = Decimal(str(change_param))
+                if paid_param:
+                    amount_tendered = Decimal(str(paid_param))
+            except (ValueError, TypeError):
+                pass
+        elif first_sale and first_sale.note and "Change:" in first_sale.note:
+            try:
+                parts = dict(p.split(":") for p in first_sale.note.split("|") if ":" in p)
+                if "Change" in parts:
+                    change_return = Decimal(parts["Change"])
+                if "Tendered" in parts:
+                    amount_tendered = Decimal(parts["Tendered"])
+            except Exception:
+                pass
 
         ctx["page_title"] = f"Thermal Receipt – {order_ref}"
         ctx["order_ref"] = order_ref
@@ -244,6 +282,8 @@ class POSThermalReceiptView(StaffRequiredMixin, TemplateView):
         ctx["first_sale"] = first_sale
         ctx["total_amount"] = total_amt
         ctx["total_qty"] = total_qty
+        ctx["amount_tendered"] = amount_tendered
+        ctx["change_return"] = change_return
         return ctx
 
 

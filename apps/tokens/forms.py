@@ -1,6 +1,6 @@
 """Tokens App – Forms."""
 from django import forms
-from apps.employees.models import Employee
+from apps.employees.models import Employee, MembershipType
 
 
 class TokenIssueForm(forms.Form):
@@ -28,6 +28,10 @@ class TokenIssueForm(forms.Form):
     def __init__(self, *args, tenant=None, **kwargs):
         super().__init__(*args, **kwargs)
         if tenant:
-            self.fields["employee"].queryset = Employee.objects.filter(
-                tenant=tenant, is_active=True
-            ).order_by("full_name")
+            self.fields["employee"].queryset = (
+                Employee.objects.filter(
+                    tenant=tenant, is_active=True, membership_status=True
+                )
+                .exclude(membership_type=MembershipType.NOT_MEMBER)
+                .order_by("full_name")
+            )

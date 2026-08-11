@@ -82,7 +82,7 @@
       <div class="card-header bg-body-tertiary py-2 border-bottom">
         <div class="d-flex justify-content-between align-items-center">
           <span class="fw-bold small text-uppercase text-body"><i class="bi bi-person-bounding-box me-1 text-warning"></i>Customer / Employee Lookup</span>
-          <span class="badge bg-secondary-subtle text-body border" x-text="employee ? 'Registered Member' : 'Walk-in Customer'"></span>
+          <span class="badge bg-secondary-subtle text-body border" x-text="employee ? (employee.membership_status ? 'Active Member' : 'Registered Employee') : 'Walk-in Customer'"></span>
         </div>
       </div>
       <div class="card-body py-2.5 px-3">
@@ -230,11 +230,16 @@
           </div>
 
           <div class="mb-3">
-            <input type="number" x-model.number="amountPaid" class="form-control form-control-sm font-monospace" placeholder="Amount Paid" step="0.01">
-            <div class="mt-1 small d-flex justify-content-between fw-bold" :class="{'text-success': change >= 0, 'text-danger': change < 0}">
+            <input type="number" id="posAmountPaidInput" x-model.number="amountPaid" class="form-control form-control-sm font-monospace fw-bold" placeholder="Enter Amount Paid (or click Exact)" step="0.01">
+            <div class="mt-1 small d-flex justify-content-between fw-bold" :class="{'text-success': change >= 0 && amountPaid > 0, 'text-danger': change < 0 || !amountPaid}">
               <span>Return Change:</span>
-              <strong class="font-monospace" x-text="(change >= 0 ? change.toFixed(2) : '0.00')"></strong>
+              <strong class="font-monospace" x-text="(change >= 0 && amountPaid > 0 ? change.toFixed(2) : '0.00')"></strong>
             </div>
+            <template x-if="isAmountMissing">
+              <div class="text-warning-emphasis small fw-bold mt-1">
+                <i class="bi bi-info-circle-fill me-1"></i>Enter cash received or click "Exact" button.
+              </div>
+            </template>
             <template x-if="isInsufficientPaid">
               <div class="text-danger small fw-bold mt-1">
                 <i class="bi bi-exclamation-triangle-fill me-1"></i>Amount paid is less than total bill!

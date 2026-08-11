@@ -74,7 +74,8 @@ class TokenIssueView(StaffRequiredMixin, TemplateView):
         open_requests_today = list(open_requests_map.keys())
 
         eligible_employees = (
-            Employee.objects.filter(tenant=tenant, is_active=True)
+            Employee.objects.filter(tenant=tenant, is_active=True, membership_status=True)
+            .exclude(membership_type=MembershipType.NOT_MEMBER)
             .select_related("department")
             .order_by("full_name")
         )
@@ -230,7 +231,7 @@ class TokenIssueView(StaffRequiredMixin, TemplateView):
             return redirect(f"/tokens/issue/?date={target_date}" if target_date != today else "tokens:issue")
 
         # Check Temp Close lock
-        if is_temp_close and not is_roti_override:
+        if employee.is_temp_close and not is_roti_override:
             msg = f"{employee.full_name} is Temp Close / Closed Today. Authorize staff override."
             if request.headers.get("HX-Request"):
                 return JsonResponse({"error": msg}, status=400)
@@ -345,7 +346,7 @@ class LunchTokenReceiptView(StaffRequiredMixin, TemplateView):
         token_id = self.kwargs.get("pk")
 
         token = get_object_or_404(
-            LunchToken.objects.select_related("employee", "employee__department", "issued_by"),
+            LunchToken.objects.select_related("employee", "employee__department", "issued_by", "daily_estimate"),
             tenant=tenant,
             pk=token_id,
         )

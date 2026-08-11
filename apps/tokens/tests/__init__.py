@@ -1,0 +1,1 @@
+"""Tokens App Tests Init."""
