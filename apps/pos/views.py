@@ -32,8 +32,17 @@ class POSView(StaffRequiredMixin, TemplateView):
             "items"
         )
         ctx["items"] = TeaItem.objects.filter(tenant=tenant, is_available=True).select_related("category")
-        ctx["payment_methods"] = PaymentMethod.choices
-        ctx["today"] = timezone.localdate()
+        today = timezone.localdate()
+        ctx["today"] = today
+
+        # Today's Revenue calculation for POS header badge
+        from django.db.models import F, Sum
+        today_sales = TeaItemSale.objects.filter(tenant=tenant, date=today)
+        today_total = today_sales.aggregate(
+            t=Sum(F("quantity") * F("unit_price"))
+        )["t"] or Decimal("0.00")
+        ctx["today_total"] = today_total
+
         # Today's summary
         employees = Employee.objects.filter(tenant=tenant, is_active=True).select_related("department").order_by("full_name")
         ctx["employees_json"] = [
