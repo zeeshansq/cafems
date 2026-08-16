@@ -25,6 +25,10 @@ jobs:
           pip install pytest pytest-django
 
       - name: Run Pytest Suite
+        env:
+          SECRET_KEY: 'django-insecure-ci-testing-key-cafems-test-suite-2026'
+          DEBUG: 'True'
+          DJANGO_SETTINGS_MODULE: 'cafems.settings.development'
         run: |
           pytest
 
