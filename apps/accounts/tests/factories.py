@@ -19,6 +19,7 @@ class TenantFactory(DjangoModelFactory):
 class UserFactory(DjangoModelFactory):
     class Meta:
         model = User
+        skip_postgeneration_save = True
 
     email = factory.Sequence(lambda n: f"user{n}@cafems.test")
     username = factory.LazyAttribute(lambda o: o.email)
