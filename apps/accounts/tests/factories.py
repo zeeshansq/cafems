@@ -19,16 +19,21 @@ class TenantFactory(DjangoModelFactory):
 class UserFactory(DjangoModelFactory):
     class Meta:
         model = User
-        skip_postgeneration_save = True
 
     email = factory.Sequence(lambda n: f"user{n}@cafems.test")
     username = factory.LazyAttribute(lambda o: o.email)
     first_name = factory.Faker("first_name")
     last_name = factory.Faker("last_name")
-    password = factory.PostGenerationMethodCall("set_password", "testpass123")
     role = UserRole.EMPLOYEE
     tenant = factory.SubFactory(TenantFactory)
     is_active = True
+
+    @factory.post_generation
+    def password(obj, create, extracted, **kwargs):
+        password = extracted or "testpass123"
+        obj.set_password(password)
+        if create:
+            obj.save(update_fields=["password"])
 
 
 class AdminUserFactory(UserFactory):
