@@ -13,6 +13,7 @@ environ.Env.read_env(BASE_DIR / ".env")
 # ─── Security ────────────────────────────────────────────────────────────────
 SECRET_KEY = env("SECRET_KEY")
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
 ENABLE_DEMO_LOGIN = env.bool("ENABLE_DEMO_LOGIN", default=True)
 
 # ─── Application definition ──────────────────────────────────────────────────

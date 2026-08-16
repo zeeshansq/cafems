@@ -4,7 +4,7 @@ import pytest
 from apps.tenants.models import Tenant
 from apps.employees.models import Employee, MembershipType
 from apps.billing.services import BillingService
-from apps.billing.models import MonthlyBill
+from apps.billing.models import MonthlyBill, BillStatus
 
 
 @pytest.mark.django_db
@@ -24,5 +24,5 @@ def test_billing_service_generation():
 
     assert count == 1
     bill = MonthlyBill.objects.get(tenant=tenant, employee=emp)
-    assert bill.status == "draft"
+    assert bill.status == BillStatus.UNPAID
     assert bill.total >= Decimal("0.00")

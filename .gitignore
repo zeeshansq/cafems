@@ -31,6 +31,10 @@ SEEDER_SUMMARY_AND_CREDENTIALS.txt
 .env
 .env.local
 .env.*.local
+.env.production
+production.env
+*.env
+!.env.example
 *.pem
 *.key
 

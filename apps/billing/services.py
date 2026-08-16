@@ -25,28 +25,42 @@ class BillingService:
         self.period_end = self.month.replace(day=last_day)
 
     def generate_all(self) -> int:
-        """Generate draft bills for all eligible employees. Returns count created."""
+        """Generate draft bills for all eligible employees for the month. Returns count created."""
+        from .models import MonthlyBillRun, MonthlyBillRunStatus
+
+        MonthlyBillRun.objects.update_or_create(
+            tenant=self.tenant,
+            period_start=self.period_start,
+            defaults={
+                "period_end": self.period_end,
+                "status": MonthlyBillRunStatus.DRAFT,
+                "generated_by": self.actor,
+            }
+        )
+
         eligible = Employee.objects.filter(
             tenant=self.tenant, is_active=True, membership_status=True
         ).exclude(membership_type=MembershipType.TEMP_CLOSE)
 
-        misc_charges = MiscCharge.objects.filter(tenant=self.tenant, month=self.month)
-        total_misc = misc_charges.aggregate(t=Sum("amount"))["t"] or Decimal("0.00")
+        misc_charges = list(MiscCharge.objects.filter(tenant=self.tenant, month=self.month))
+        total_misc = sum((c.amount for c in misc_charges), Decimal("0.00"))
 
-        created_count = 0
+        count = 0
         for employee in eligible:
-            if MonthlyBill.objects.filter(
+            # Replace existing unapproved/unpaid bill for this period if regenerating
+            MonthlyBill.objects.filter(
                 tenant=self.tenant,
                 employee=employee,
                 period_start=self.period_start,
-            ).exists():
-                continue  # Already generated
+                status=BillStatus.UNPAID,
+            ).delete()
 
             bill = self._build_bill(employee, total_misc, misc_charges)
-            bill.save()
-            created_count += 1
+            if bill:
+                bill.save()
+                count += 1
 
-        return created_count
+        return count
 
     def _build_bill(self, employee: Employee, total_misc: Decimal, misc_charges) -> MonthlyBill:
         """Build (but don't save) a MonthlyBill for one employee."""
@@ -166,38 +180,3 @@ class BillingService:
         )
         bill.calculate_totals()
         return bill
-
-    def generate_all(self):
-        """Generates bills for all active employees for period_start."""
-        from .models import MonthlyBillRun, MonthlyBillRunStatus
-        run, _ = MonthlyBillRun.objects.update_or_create(
-            tenant=self.tenant,
-            period_start=self.period_start,
-            defaults={
-                "period_end": self.period_end,
-                "status": MonthlyBillRunStatus.DRAFT,
-                "generated_by": self.actor,
-            }
-        )
-
-        from apps.employees.models import Employee
-        employees = Employee.objects.filter(
-            tenant=self.tenant,
-            is_active=True,
-            membership_status=True,
-        )
-        count = 0
-        for emp in employees:
-            bill = self._build_bill(emp)
-            if bill:
-                # Replace existing bill for this period if unapproved/unpaid
-                MonthlyBill.objects.filter(
-                    tenant=self.tenant,
-                    employee=emp,
-                    period_start=self.period_start,
-                    status=BillStatus.UNPAID,
-                ).delete()
-                bill.save()
-                count += 1
-
-        return count
